@@ -1,0 +1,36 @@
+{
+  "name": "yo-url-yo-json",
+  "version": "0.1.0",
+  "description": "URL + Zod/JSON Schema -> validated JSON using CloakBrowser, llm-scraper, and Codex CLI.",
+  "type": "module",
+  "bin": {
+    "yo-url-yo-json": "./src/index.ts"
+  },
+  "scripts": {
+    "docker:cleanup": "bun run scripts/cleanup-cloakbrowser.ts",
+    "docker:pull": "docker pull cloakhq/cloakbrowser:latest",
+    "parse": "bun run src/index.ts parse",
+    "schema": "bun run src/index.ts schema",
+    "typecheck": "tsc --noEmit",
+    "test": "bun test"
+  },
+  "dependencies": {
+    "@openai/codex": "0.130.0",
+    "ai": "^6.0.0",
+    "ai-sdk-provider-codex-cli": "^1.0.0",
+    "ajv": "^8.17.1",
+    "ajv-formats": "^3.0.1",
+    "commander": "^14.0.2",
+    "llm-scraper": "^2.0.0",
+    "playwright-core": "1.55.0",
+    "tsx": "^4.21.0",
+    "zod": "^4.1.12"
+  },
+  "overrides": {
+    "@openai/codex": "0.130.0"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.3.3",
+    "typescript": "^5.9.3"
+  }
+}

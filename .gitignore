@@ -1,0 +1,5 @@
+node_modules/
+dist/
+.env
+.yo-url-yo-json/
+*.log

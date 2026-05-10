@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["title", "price", "description"],
+  "properties": {
+    "title": {
+      "type": "string",
+      "description": "Main product or page title"
+    },
+    "price": {
+      "type": "string",
+      "description": "Displayed price, including currency when available"
+    },
+    "description": {
+      "type": "string",
+      "description": "Short human-readable summary from the page"
+    }
+  }
+}
