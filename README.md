@@ -1,4 +1,11 @@
-# yo-url-yo-json
+<p align="right">
+  <img width="300" height="300" alt="yoyo-logo" src="https://github.com/user-attachments/assets/adf5a2d5-8649-4228-91d8-fbe7926f8295" />
+</p>
+
+# yo url yo json
+
+WIP
+
 URL + Schema -> JSON
 
 `yo-url-yo-json` is a Bun + TypeScript CLI for extracting structured JSON from a webpage.
