@@ -1,7 +1,8 @@
 #!/usr/bin/env bun
 import { Command } from "commander";
 import { spawnSync } from "node:child_process";
-import { resolve } from "node:path";
+import { existsSync, realpathSync } from "node:fs";
+import { basename, dirname, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { buildCacheKey } from "../src/cache";
 import { launchBrowser } from "../src/browser";
@@ -35,24 +36,26 @@ export function createParseCommand(): Command {
         return;
       }
 
-      const options: ParseOptions = {
-        url: normalizeUrl(rawOptions.url),
-        schemaPath: resolve(rawOptions.schema),
-        cacheDir: resolve(rawOptions.cacheDir),
-        progressSteps: 11,
-        model: rawOptions.model,
-        timeoutMs: rawOptions.timeoutMs,
-        gotoTimeoutMs: rawOptions.gotoTimeoutMs,
-        forceRegenerate: Boolean(rawOptions.forceRegenerate),
-        headed: Boolean(rawOptions.headed),
-        verbose: Boolean(rawOptions.verbose),
-      };
-
-      const logger = createLogger(options.verbose);
-      const progress = new Progress(options.verbose, options.progressSteps);
       let browser: Awaited<ReturnType<typeof launchBrowser>> | null = null;
+      let progress: Progress | null = null;
 
       try {
+        const options: ParseOptions = {
+          url: normalizeUrl(rawOptions.url),
+          schemaPath: resolve(rawOptions.schema),
+          cacheDir: resolve(rawOptions.cacheDir),
+          progressSteps: 11,
+          model: rawOptions.model,
+          timeoutMs: rawOptions.timeoutMs,
+          gotoTimeoutMs: rawOptions.gotoTimeoutMs,
+          forceRegenerate: Boolean(rawOptions.forceRegenerate),
+          headed: Boolean(rawOptions.headed),
+          verbose: Boolean(rawOptions.verbose),
+        };
+
+        const logger = createLogger(options.verbose);
+        progress = new Progress(options.verbose, options.progressSteps);
+
         progress.step("Loading schema");
         const schemaBundle = await loadSchema(options.schemaPath);
         const key = buildCacheKey(options.url, schemaBundle.schema);
@@ -82,7 +85,7 @@ export function createParseCommand(): Command {
         process.exitCode = 1;
       } finally {
         if (browser) {
-          progress.step("Closing browser resources");
+          progress?.step("Closing browser resources");
           await browser.close().catch(() => undefined);
         }
       }
@@ -98,8 +101,8 @@ function reexecParseUnderNode(verbose: boolean): void {
     console.error("[info] re-executing parse under Node for Playwright CDP compatibility");
   }
 
-  const entrypoint = process.argv[1] ? resolve(process.argv[1]) : resolve("commands/parse.ts");
-  const result = spawnSync("node", ["--import", "tsx", entrypoint, ...process.argv.slice(2)], {
+  const target = resolveNodeReexecTarget();
+  const result = spawnSync("node", [...target.nodeArgs, ...target.scriptArgs], {
     env: {
       ...process.env,
       YOYJ_PARSE_NODE_REEXEC: "1",
@@ -112,6 +115,46 @@ function reexecParseUnderNode(verbose: boolean): void {
   }
 
   process.exitCode = result.status ?? 1;
+}
+
+type NodeReexecTarget = {
+  nodeArgs: string[];
+  scriptArgs: string[];
+};
+
+function resolveNodeReexecTarget(): NodeReexecTarget {
+  const bundledNodeEntrypoint = findBundledNodeEntrypoint();
+
+  if (bundledNodeEntrypoint) {
+    return {
+      nodeArgs: [bundledNodeEntrypoint],
+      scriptArgs: process.argv.slice(2),
+    };
+  }
+
+  return {
+    nodeArgs: ["--import", "tsx", resolve("commands/parse.ts")],
+    scriptArgs: stripParseSubcommand(process.argv.slice(2)),
+  };
+}
+
+function findBundledNodeEntrypoint(): string | null {
+  if (!process.argv[1]) {
+    return null;
+  }
+
+  const entrypoint = realpathSync(resolve(process.argv[1]));
+  const bundledNodeEntrypoint = join(dirname(entrypoint), "yo-url-yo-json-node.js");
+
+  if (basename(entrypoint) === "yo-url-yo-json.js" && existsSync(bundledNodeEntrypoint)) {
+    return bundledNodeEntrypoint;
+  }
+
+  return null;
+}
+
+function stripParseSubcommand(args: string[]): string[] {
+  return args[0] === "parse" ? args.slice(1) : args;
 }
 
 function parsePositiveInt(value: string): number {
@@ -145,7 +188,16 @@ function reportError(error: unknown): void {
 }
 
 function isMainModule(url: string): boolean {
-  return process.argv[1] ? pathToFileURL(resolve(process.argv[1])).href === url : false;
+  if (!process.argv[1] || isBundledRootEntrypoint(process.argv[1])) {
+    return false;
+  }
+
+  return pathToFileURL(resolve(process.argv[1])).href === url;
+}
+
+function isBundledRootEntrypoint(entrypoint: string): boolean {
+  const name = basename(entrypoint);
+  return name === "yo-url-yo-json" || name === "yo-url-yo-json.js" || name === "yo-url-yo-json-node.js";
 }
 
 if (isMainModule(import.meta.url)) {

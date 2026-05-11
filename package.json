@@ -1,11 +1,47 @@
 {
   "name": "yo-url-yo-json",
   "version": "0.1.0",
-  "description": "URL + JSON Schema -> validated JSON using CloakBrowser, llm-scraper, and Codex CLI.",
+  "description": "Extract validated JSON from webpages using JSON Schema, CloakBrowser, llm-scraper, and Codex CLI.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Seryiza/yo-url-yo-json.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Seryiza/yo-url-yo-json/issues"
+  },
+  "homepage": "https://github.com/Seryiza/yo-url-yo-json#readme",
+  "keywords": [
+    "json-schema",
+    "web-scraping",
+    "llm",
+    "codex",
+    "cli",
+    "bun"
+  ],
   "type": "module",
+  "bin": {
+    "yo-url-yo-json": "./dist/yo-url-yo-json.js"
+  },
+  "files": [
+    "dist",
+    "docker-compose.yml",
+    "examples",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "bun": ">=1.2.0",
+    "node": ">=20"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
+    "build": "bun build --target=bun --packages=external --outfile=dist/yo-url-yo-json.js commands/index.ts && bun build --target=node --packages=external --outfile=dist/yo-url-yo-json-node.js commands/index.ts && chmod +x dist/yo-url-yo-json.js dist/yo-url-yo-json-node.js",
     "docker:cleanup": "bun run dev-scripts/cleanup-cloakbrowser.ts",
     "docker:pull": "docker compose pull cloakbrowser",
+    "prepublishOnly": "bun run typecheck && bun test && bun run build && npm pack --dry-run",
     "typecheck": "tsc --noEmit",
     "test": "bun test"
   },

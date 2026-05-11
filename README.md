@@ -2,7 +2,7 @@
   <img width="300" height="300" alt="yoyo-logo" src="https://github.com/user-attachments/assets/adf5a2d5-8649-4228-91d8-fbe7926f8295" />
 </p>
 
-# yo url yo json
+# 🪀✨ yo url yo json
 
 *URL + Schema -> JSON*
 
@@ -15,6 +15,21 @@
 - Codex auth: `codex login` or `OPENAI_API_KEY`
 - Project deps: `bun install`
 
+From another TypeScript project:
+
+```bash
+bun add -d yo-url-yo-json
+```
+
+```json
+{
+  "scripts": {
+    "extract": "yo-url-yo-json parse --url https://example.com --schema ./schemas/product.schema.json",
+    "schema": "yo-url-yo-json generate-schema --out ./schemas/product.schema.json"
+  }
+}
+```
+
 ## Agent Skill
 
 Project-local skill: `skills/yo-url-yo-json/SKILL.md`.
@@ -24,16 +39,18 @@ Project-local skill: `skills/yo-url-yo-json/SKILL.md`.
 Generate a JSON Schema with Codex:
 
 ```bash
-bun commands/generate-schema.ts --out ./schemas/product.schema.json
+yo-url-yo-json generate-schema --out ./schemas/product.schema.json
 ```
 
 Parse a page with Codex-powered extraction:
 
 ```bash
-bun commands/parse.ts --url "https://example.com" --schema ./schemas/product.schema.json
+yo-url-yo-json parse --url "https://example.com" --schema ./schemas/product.schema.json
 ```
 
-Useful options for `bun commands/parse.ts`:
+`parse` and `generate-schema` are subcommands of the single `yo-url-yo-json` executable; they are not separate npm bin aliases.
+
+Useful options for `yo-url-yo-json parse`:
 
 ```bash
 --cache-dir .yo-url-yo-json/scripts
@@ -73,7 +90,7 @@ Useful commands:
 ```bash
 bun run docker:pull
 bun run docker:cleanup
-bun commands/parse.ts --url "https://example.com" --schema ./examples/product.schema.json
+yo-url-yo-json parse --url "https://example.com" --schema ./examples/product.schema.json
 ```
 
 ## Development
@@ -81,4 +98,9 @@ bun commands/parse.ts --url "https://example.com" --schema ./examples/product.sc
 ```bash
 bun run typecheck
 bun test
+
+# publish
+bun run build
+npm pack --dry-run
+npm publish
 ```

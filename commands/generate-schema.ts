@@ -1,18 +1,17 @@
 #!/usr/bin/env bun
 import { Command } from "commander";
-import { resolve } from "node:path";
+import { basename, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { runSchemaGenerator } from "../src/schema-generator";
 
 export async function runSchemaCli(argv = process.argv): Promise<void> {
   await createSchemaCommand()
-    .name("generate-schema")
     .description("Generate a JSON Schema file.")
     .parseAsync(argv);
 }
 
 export function createSchemaCommand(): Command {
-  return new Command("schema")
+  return new Command("generate-schema")
     .requiredOption("--out <path>", "Where to save the generated .json JSON Schema file")
     .option("--model <model>", "Codex model name", process.env.YOYJ_MODEL ?? "gpt-5.5")
     .option("--verbose", "Print provider diagnostics to stderr", false)
@@ -40,7 +39,16 @@ function reportError(error: unknown): void {
 }
 
 function isMainModule(url: string): boolean {
-  return process.argv[1] ? pathToFileURL(resolve(process.argv[1])).href === url : false;
+  if (!process.argv[1] || isBundledRootEntrypoint(process.argv[1])) {
+    return false;
+  }
+
+  return pathToFileURL(resolve(process.argv[1])).href === url;
+}
+
+function isBundledRootEntrypoint(entrypoint: string): boolean {
+  const name = basename(entrypoint);
+  return name === "yo-url-yo-json" || name === "yo-url-yo-json.js" || name === "yo-url-yo-json-node.js";
 }
 
 if (isMainModule(import.meta.url)) {
