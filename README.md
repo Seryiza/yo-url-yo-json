@@ -81,24 +81,11 @@ Stdout is reserved for parsed JSON. Diagnostics are written to stderr.
 
 ## Schema Generation
 
-The schema generator asks for a prompt when `--prompt` is omitted, drafts a Zod module,
-validates that it can be imported and converted with `z.toJSONSchema()`, then asks for approval
-before saving.
+The schema generator asks for a prompt, drafts a Zod module, validates that it can be imported
+and converted with `z.toJSONSchema()`, then asks for approval before saving.
 
 ```bash
 bun commands/generate-schema.ts --out ./schemas/article.schema.ts
-```
-
-Use `--prompt` for non-interactive prompt input:
-
-```bash
-bun commands/generate-schema.ts --out ./schemas/article.schema.ts --prompt "Extract article headline, author, publish date, and summary"
-```
-
-Use `--url` only as optional context when the schema should fit a known page type:
-
-```bash
-bun commands/generate-schema.ts --out ./schemas/product.schema.ts --url "https://example.com/product/123"
 ```
 
 Interactive choices:
@@ -108,12 +95,6 @@ Interactive choices:
 [e]dit         enter suggestions and regenerate
 [r]egenerate   create another draft for the same prompt
 [c]ancel       exit without saving
-```
-
-For non-interactive use:
-
-```bash
-bun commands/generate-schema.ts --out ./schemas/article.schema.ts --prompt "Extract article headline and author" --yes
 ```
 
 ## Schemas

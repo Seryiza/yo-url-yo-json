@@ -29,9 +29,7 @@ bun commands/generate-schema.ts --out ./schema.ts
 ```
 
 The command asks for the extraction prompt interactively, shows a generated Zod schema, and lets
-the user approve, edit with suggestions, regenerate, or cancel. Pass `--url` only when a known
-page URL would help shape the schema; it is not required. Use `--yes` only when the user
-explicitly asks for non-interactive mode.
+the user approve, edit with suggestions, regenerate, or cancel.
 
 ## Behavior
 
@@ -41,7 +39,7 @@ explicitly asks for non-interactive mode.
 - It reuses a generated Playwright extractor when one exists for the URL origin and schema hash.
 - If the cached extractor throws, times out, or returns schema-invalid data, the CLI regenerates it with `llm-scraper`.
 - Generated extractors are stored under `.yo-url-yo-json/scripts/`.
-- Generated schemas are saved only after approval unless `--yes` is set.
+- Generated schemas are saved only after approval.
 
 ## Notes
 

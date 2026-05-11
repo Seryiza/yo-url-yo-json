@@ -15,16 +15,13 @@ const generatedSchemaResponse = z.object({
 });
 
 export type GenerateSchemaOptions = {
-  prompt?: string;
   out: string;
-  url?: string;
   model: string;
-  yes: boolean;
   verbose: boolean;
 };
 
 export async function runSchemaGenerator(options: GenerateSchemaOptions): Promise<void> {
-  const prompt = options.prompt ?? (await askRequired("Describe the data you want to extract: "));
+  const prompt = await askRequired("Describe the data you want to extract: ");
   const outPath = resolve(options.out);
   const rl = createInterface({ input, output });
   let feedback = "";
@@ -34,7 +31,6 @@ export async function runSchemaGenerator(options: GenerateSchemaOptions): Promis
     while (true) {
       const draft = await generateSchemaDraft({
         prompt,
-        url: options.url,
         model: options.model,
         verbose: options.verbose,
         feedback,
@@ -60,12 +56,6 @@ export async function runSchemaGenerator(options: GenerateSchemaOptions): Promis
       output.write("\nGenerated schema:\n\n");
       output.write(`${lastSource}\n\n`);
       output.write(`Rationale: ${draft.rationale}\n\n`);
-
-      if (options.yes) {
-        await saveSchema(outPath, lastSource);
-        output.write(`Saved schema to ${outPath}\n`);
-        return;
-      }
 
       const action = await askChoice(rl, "Approve and save? [a]pprove, [e]dit, [r]egenerate, [c]ancel: ");
 
@@ -97,7 +87,6 @@ export async function runSchemaGenerator(options: GenerateSchemaOptions): Promis
 
 async function generateSchemaDraft(args: {
   prompt: string;
-  url?: string;
   model: string;
   verbose: boolean;
   feedback: string;
@@ -122,7 +111,6 @@ async function generateSchemaDraft(args: {
       ].join("\n"),
       prompt: [
         `User extraction request:\n${args.prompt}`,
-        args.url ? `Likely target URL:\n${args.url}` : "",
         args.previousSource ? `Previous schema draft:\n${args.previousSource}` : "",
         args.feedback ? `Revision instructions:\n${args.feedback}` : "",
         "Generate the complete schema module now.",

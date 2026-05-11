@@ -14,19 +14,13 @@ export async function runSchemaCli(argv = process.argv): Promise<void> {
 export function createSchemaCommand(): Command {
   return new Command("schema")
     .requiredOption("--out <path>", "Where to save the generated Zod schema module")
-    .option("--prompt <text>", "Prompt describing the data to extract")
-    .option("--url <url>", "Optional URL context for the schema generator")
     .option("--model <model>", "Codex model name", process.env.YOYJ_MODEL ?? "gpt-5.5")
-    .option("--yes", "Save the first valid generated schema without interactive approval", false)
     .option("--verbose", "Print provider diagnostics to stderr", false)
     .action(async (rawOptions) => {
       try {
         await runSchemaGenerator({
-          prompt: rawOptions.prompt,
           out: rawOptions.out,
-          url: rawOptions.url ? normalizeUrl(rawOptions.url) : undefined,
           model: rawOptions.model,
-          yes: Boolean(rawOptions.yes),
           verbose: Boolean(rawOptions.verbose),
         });
       } catch (error) {
@@ -34,14 +28,6 @@ export function createSchemaCommand(): Command {
         process.exitCode = 1;
       }
     });
-}
-
-function normalizeUrl(value: string): string {
-  try {
-    return new URL(value).toString();
-  } catch {
-    throw new Error(`Invalid URL: ${value}`);
-  }
 }
 
 function reportError(error: unknown): void {
