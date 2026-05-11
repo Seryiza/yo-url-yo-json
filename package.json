@@ -3,14 +3,9 @@
   "version": "0.1.0",
   "description": "URL + Zod/JSON Schema -> validated JSON using CloakBrowser, llm-scraper, and Codex CLI.",
   "type": "module",
-  "bin": {
-    "yo-url-yo-json": "./src/index.ts"
-  },
   "scripts": {
-    "docker:cleanup": "bun run scripts/cleanup-cloakbrowser.ts",
+    "docker:cleanup": "bun run dev-scripts/cleanup-cloakbrowser.ts",
     "docker:pull": "docker pull cloakhq/cloakbrowser:latest",
-    "parse": "bun run src/index.ts parse",
-    "schema": "bun run src/index.ts schema",
     "typecheck": "tsc --noEmit",
     "test": "bun test"
   },

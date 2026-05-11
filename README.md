@@ -44,15 +44,15 @@ codex login
 
 The project pins `@openai/codex@0.130.0` directly because
 `ai-sdk-provider-codex-cli@1.1.0` declares an older optional `@openai/codex` dependency that
-does not support `gpt-5.5`. Run commands through `bun run ...` so the provider resolves the
-project-installed Codex CLI from `node_modules`.
+does not support `gpt-5.5`. Run the TypeScript entry files from the project root so the provider
+resolves the project-installed Codex CLI from `node_modules`.
 
 ## Usage
 
 Generate a Zod schema with Codex and approve it interactively:
 
 ```bash
-bun run schema -- --out ./schemas/product.schema.ts
+bun commands/generate-schema.ts --out ./schemas/product.schema.ts
 ```
 
 The command asks what data to extract, then shows a schema draft for approval.
@@ -60,12 +60,12 @@ The command asks what data to extract, then shows a schema draft for approval.
 Then parse a page with the saved schema:
 
 ```bash
-bun run parse -- --url "https://example.com" --schema ./schemas/product.schema.ts
+bun commands/parse.ts --url "https://example.com" --schema ./schemas/product.schema.ts
 ```
 
-`bun run schema` runs on the host and uses the project-installed Codex CLI/auth. `bun run parse`
-starts from Bun, re-executes the parser under Node for Playwright compatibility, and starts an
-official CloakBrowser Docker container for the browser only.
+`bun commands/generate-schema.ts` runs on the host and uses the project-installed Codex CLI/auth.
+`bun commands/parse.ts` starts from Bun, re-executes the parser under Node for Playwright
+compatibility, and starts an official CloakBrowser Docker container for the browser only.
 
 Useful options:
 
@@ -86,19 +86,19 @@ validates that it can be imported and converted with `z.toJSONSchema()`, then as
 before saving.
 
 ```bash
-bun run schema -- --out ./schemas/article.schema.ts
+bun commands/generate-schema.ts --out ./schemas/article.schema.ts
 ```
 
 Use `--prompt` for non-interactive prompt input:
 
 ```bash
-bun run schema -- --out ./schemas/article.schema.ts --prompt "Extract article headline, author, publish date, and summary"
+bun commands/generate-schema.ts --out ./schemas/article.schema.ts --prompt "Extract article headline, author, publish date, and summary"
 ```
 
 Use `--url` only as optional context when the schema should fit a known page type:
 
 ```bash
-bun run schema -- --out ./schemas/product.schema.ts --url "https://example.com/product/123"
+bun commands/generate-schema.ts --out ./schemas/product.schema.ts --url "https://example.com/product/123"
 ```
 
 Interactive choices:
@@ -113,7 +113,7 @@ Interactive choices:
 For non-interactive use:
 
 ```bash
-bun run schema -- --out ./schemas/article.schema.ts --prompt "Extract article headline and author" --yes
+bun commands/generate-schema.ts --out ./schemas/article.schema.ts --prompt "Extract article headline and author" --yes
 ```
 
 ## Schemas
@@ -139,7 +139,7 @@ generation.
 Plain JSON Schema files are still supported:
 
 ```bash
-bun run parse -- --url "https://example.com" --schema ./examples/product.schema.json
+bun commands/parse.ts --url "https://example.com" --schema ./examples/product.schema.json
 ```
 
 ## CloakBrowser Docker Runtime
@@ -169,7 +169,7 @@ bun run docker:cleanup
 Run normally:
 
 ```bash
-bun run parse -- --url "https://example.com" --schema ./examples/product.schema.ts
+bun commands/parse.ts --url "https://example.com" --schema ./examples/product.schema.ts
 ```
 
 If the CloakBrowser image is not present locally, Docker will pull it automatically on first use.
@@ -179,11 +179,11 @@ Useful CloakBrowser runtime overrides:
 
 ```bash
 # Re-enable CloakBrowser background updates. Downloads are persisted in the Docker volume.
-YOYJ_CLOAKBROWSER_AUTO_UPDATE=true bun run parse -- --url "https://example.com" --schema ./examples/product.schema.ts
+YOYJ_CLOAKBROWSER_AUTO_UPDATE=true bun commands/parse.ts --url "https://example.com" --schema ./examples/product.schema.ts
 
 # Use another cache volume, or set to "none" for a fully disposable browser cache.
-YOYJ_CLOAKBROWSER_CACHE_VOLUME=my-cloak-cache bun run parse -- --url "https://example.com" --schema ./examples/product.schema.ts
-YOYJ_CLOAKBROWSER_CACHE_VOLUME=none bun run parse -- --url "https://example.com" --schema ./examples/product.schema.ts
+YOYJ_CLOAKBROWSER_CACHE_VOLUME=my-cloak-cache bun commands/parse.ts --url "https://example.com" --schema ./examples/product.schema.ts
+YOYJ_CLOAKBROWSER_CACHE_VOLUME=none bun commands/parse.ts --url "https://example.com" --schema ./examples/product.schema.ts
 ```
 
 If Codex exits with an error, rerun with `--verbose`, check auth with `codex login` or

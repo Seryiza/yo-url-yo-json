@@ -9,14 +9,14 @@ Use this skill to return structured JSON for a URL and a Zod schema or JSON Sche
 
 ## Workflow
 
-1. Ensure the user provided a URL and schema. If the user wants help creating the schema, use `bun run schema`.
+1. Ensure the user provided a URL and schema. If the user wants help creating the schema, use `bun commands/generate-schema.ts`.
 2. Pull the official CloakBrowser image if needed:
    ```bash
    bun run docker:pull
    ```
 3. Run the CLI:
    ```bash
-   bun run parse -- --url "https://example.com" --schema ./schema.ts
+   bun commands/parse.ts --url "https://example.com" --schema ./schema.ts
    ```
 4. Return the CLI stdout JSON as the answer. Keep stderr diagnostics only for troubleshooting.
 
@@ -25,7 +25,7 @@ Use this skill to return structured JSON for a URL and a Zod schema or JSON Sche
 When the user describes what they want extracted but has no schema yet:
 
 ```bash
-bun run schema -- --out ./schema.ts
+bun commands/generate-schema.ts --out ./schema.ts
 ```
 
 The command asks for the extraction prompt interactively, shows a generated Zod schema, and lets
@@ -36,7 +36,7 @@ explicitly asks for non-interactive mode.
 ## Behavior
 
 - The CLI runs on the host and launches a fresh official CloakBrowser Docker container for each parse run.
-- `parse` starts from Bun but re-executes under Node via `tsx` because Playwright's CDP transport hangs under Bun with CloakBrowser's CDP proxy.
+- `bun commands/parse.ts` starts from Bun but re-executes under Node via `tsx` because Playwright's CDP transport hangs under Bun with CloakBrowser's CDP proxy.
 - Codex and Bun run on the host, not in Docker.
 - It reuses a generated Playwright extractor when one exists for the URL origin and schema hash.
 - If the cached extractor throws, times out, or returns schema-invalid data, the CLI regenerates it with `llm-scraper`.
@@ -49,4 +49,4 @@ explicitly asks for non-interactive mode.
 - The CLI converts Zod to JSON Schema for extractor generation and validates final JSON with Zod.
 - Docker is used only for CloakBrowser via `cloakhq/cloakbrowser:latest` and CDP.
 - CloakBrowser's binary cache is persisted in Docker volume `yo-url-yo-json-cloakbrowser-cache`, and background updates are disabled by default. Set `YOYJ_CLOAKBROWSER_AUTO_UPDATE=true` for an explicit update run, or `YOYJ_CLOAKBROWSER_CACHE_VOLUME=none` for a fully disposable cache.
-- Codex auth must be available via `codex login` or `OPENAI_API_KEY`; run through `bun run` so the project-pinned `@openai/codex` CLI is used.
+- Codex auth must be available via `codex login` or `OPENAI_API_KEY`; run the TypeScript entry files from the project root so the project-pinned `@openai/codex` CLI is used.
