@@ -10,15 +10,11 @@ Use this skill to return structured JSON for a URL and a JSON Schema.
 ## Workflow
 
 1. Ensure the user provided a URL and JSON Schema. If the user wants help creating the schema, use `bun commands/generate-schema.ts`.
-2. Pull the official CloakBrowser image if needed:
-   ```bash
-   bun run docker:pull
-   ```
-3. Run the CLI:
+2. Run the CLI:
    ```bash
    bun commands/parse.ts --url "https://example.com" --schema ./schema.json
    ```
-4. Return the CLI stdout JSON as the answer. Keep stderr diagnostics only for troubleshooting.
+3. Return the CLI stdout JSON as the answer. Keep stderr diagnostics only for troubleshooting.
 
 ## Schema Generation
 
@@ -33,11 +29,9 @@ Schema, then saves when the user presses Enter or regenerates when the user ente
 
 ## Behavior
 
-- The CLI runs on the host and launches a fresh official CloakBrowser Docker container for each parse run.
-- `bun commands/parse.ts` starts from Bun but re-executes under Node via `tsx` because Playwright's CDP transport hangs under Bun with CloakBrowser's CDP proxy.
-- Codex and Bun run on the host, not in Docker.
-- It reuses a generated Playwright extractor when one exists for the URL origin and schema hash.
-- If the cached extractor throws, times out, or returns schema-invalid data, the CLI regenerates it with `llm-scraper`.
+- The CLI uses CloakBrowser for page access.
+- It reuses generated Playwright extractors when possible.
+- Codex and `llm-scraper` generate or repair extractors when needed.
 - Generated extractors are stored under `.yo-url-yo-json/scripts/`.
 - Generated schemas are saved only after approval.
 
@@ -46,6 +40,4 @@ Schema, then saves when the user presses Enter or regenerates when the user ente
 - JSON Schema is the public schema format. The CLI validates JSON Schema with Zod's
   `z.fromJSONSchema()` internally.
 - Schema paths must end in `.json`.
-- Docker is used only for CloakBrowser via the `cloakbrowser` service in `docker-compose.yml` and CDP.
-- CloakBrowser's binary cache is persisted in Docker volume `yo-url-yo-json-cloakbrowser-cache`, and background updates are disabled by default in `docker-compose.yml`.
 - Codex auth must be available via `codex login` or `OPENAI_API_KEY`; run the TypeScript entry files from the project root so the project-pinned `@openai/codex` CLI is used.
