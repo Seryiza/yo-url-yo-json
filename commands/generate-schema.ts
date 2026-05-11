@@ -2,20 +2,24 @@
 import { Command } from "commander";
 import { basename, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
+import { configureAiSdkWarnings } from "../src/ai-sdk-warnings";
 import { runSchemaGenerator } from "../src/schema-generator";
 
 export async function runSchemaCli(argv = process.argv): Promise<void> {
   await createSchemaCommand()
-    .description("Generate a JSON Schema file.")
+    .description("Generate a JSON Schema file with optional extraction workflow metadata.")
     .parseAsync(argv);
 }
 
 export function createSchemaCommand(): Command {
   return new Command("generate-schema")
+    .description("Generate a JSON Schema file with optional extraction workflow metadata.")
     .requiredOption("--out <path>", "Where to save the generated .json JSON Schema file")
     .option("--model <model>", "Codex model name", process.env.YOYJ_MODEL ?? "gpt-5.5")
     .option("--verbose", "Print provider diagnostics to stderr", false)
     .action(async (rawOptions) => {
+      configureAiSdkWarnings(Boolean(rawOptions.verbose));
+
       try {
         await runSchemaGenerator({
           out: rawOptions.out,

@@ -1,6 +1,6 @@
 {
   "name": "yo-url-yo-json",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Extract validated JSON from webpages using JSON Schema, CloakBrowser, llm-scraper, and Codex CLI.",
   "license": "MIT",
   "repository": {

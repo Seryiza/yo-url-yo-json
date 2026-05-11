@@ -4,6 +4,7 @@ import { spawnSync } from "node:child_process";
 import { existsSync, realpathSync } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
+import { configureAiSdkWarnings } from "../src/ai-sdk-warnings";
 import { buildCacheKey } from "../src/cache";
 import { launchBrowser } from "../src/browser";
 import { parseWithBrowser } from "../src/extract";
@@ -31,6 +32,8 @@ export function createParseCommand(): Command {
     .option("--headed", "Run CloakBrowser headed", false)
     .option("--verbose", "Print diagnostics to stderr", false)
     .action(async (rawOptions) => {
+      configureAiSdkWarnings(Boolean(rawOptions.verbose));
+
       if (shouldReexecParseUnderNode()) {
         reexecParseUnderNode(Boolean(rawOptions.verbose));
         return;

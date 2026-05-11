@@ -2,6 +2,7 @@ import { readFile } from "node:fs/promises";
 import * as z from "zod";
 import type { JsonSchema, SchemaBundle } from "./types";
 import { SchemaValidationError } from "./types";
+import { splitSchemaAndWorkflow } from "./workflow";
 
 export async function loadSchema(schemaPath: string): Promise<SchemaBundle> {
   assertJsonSchemaPath(schemaPath);
@@ -26,15 +27,18 @@ async function readJsonSchema(schemaPath: string): Promise<JsonSchema> {
 
 function createJsonSchemaBundle(schema: JsonSchema): SchemaBundle {
   let zodSchema: z.ZodType;
+  const { outputSchema, workflow } = splitSchemaAndWorkflow(schema);
 
   try {
-    zodSchema = z.fromJSONSchema(schema as Parameters<typeof z.fromJSONSchema>[0]);
+    zodSchema = z.fromJSONSchema(outputSchema as Parameters<typeof z.fromJSONSchema>[0]);
   } catch (error) {
     throw new Error(`Failed to convert JSON Schema to Zod schema: ${formatError(error)}`);
   }
 
   return {
     schema,
+    outputSchema,
+    workflow,
     validate(data: unknown) {
       const result = zodSchema.safeParse(data);
       if (!result.success) {

@@ -9,7 +9,16 @@ export type JsonValue =
 export type JsonSchema = Record<string, unknown>;
 
 export type SchemaBundle = {
+  /**
+   * Original schema file contents, including supported yo-url-yo-json metadata
+   * extensions. Used for cache identity.
+   */
   schema: JsonSchema;
+  /**
+   * Pure JSON Schema used for llm-scraper output generation and validation.
+   */
+  outputSchema: JsonSchema;
+  workflow?: ExtractionWorkflow;
   validate(data: unknown): unknown;
 };
 
@@ -46,6 +55,71 @@ export type ParseOptions = {
   forceRegenerate: boolean;
   headed: boolean;
   verbose: boolean;
+};
+
+export type MissingDetailBehavior =
+  | "skip"
+  | "keepWithStatus"
+  | "errorBucket"
+  | "keepWithStatusAndErrorBucket";
+
+export type MergeStrategy = "merge" | "nest";
+
+export type WorkflowWaitState = "attached" | "detached" | "visible" | "hidden";
+
+export type WorkflowStep =
+  | {
+      type: "extract";
+      name?: string;
+      outputPath?: string;
+      schema?: JsonSchema;
+    }
+  | {
+      type: "click" | "hover" | "waitForSelector";
+      selector: string;
+      timeoutMs?: number;
+      state?: WorkflowWaitState;
+    }
+  | {
+      type: "scroll";
+      selector?: string;
+      x?: number;
+      y?: number;
+    }
+  | {
+      type: "goto";
+      url?: string;
+      urlPath?: string;
+      captureStatusAs?: string;
+      waitUntil?: "domcontentloaded" | "load" | "networkidle";
+      timeoutMs?: number;
+    }
+  | {
+      type: "forEach";
+      itemsPath: string;
+      steps: WorkflowStep[];
+    }
+  | {
+      type: "detail";
+      urlPath: string;
+      schema?: JsonSchema;
+      name?: string;
+      outputPath?: string;
+      mergeStrategy?: MergeStrategy;
+      missingDetailBehavior?: MissingDetailBehavior;
+      statusField?: string;
+      okField?: string;
+      errorField?: string;
+    };
+
+export type ExtractionWorkflow = {
+  version: 1;
+  description?: string;
+  startUrl?: string;
+  steps: WorkflowStep[];
+  missingDetailBehavior?: MissingDetailBehavior;
+  mergeStrategy?: MergeStrategy;
+  errorsPath?: string;
 };
 
 export type ExtractFailureReason =

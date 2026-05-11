@@ -7,7 +7,8 @@ import { generateObject } from "ai";
 import * as z from "zod";
 import { createCodexModel } from "./model";
 import { loadSchema } from "./schema";
-import type { JsonSchema, JsonValue } from "./types";
+import type { JsonSchema } from "./types";
+import { isJsonValue, WORKFLOW_EXTENSION_KEY } from "./workflow";
 
 const generatedSchemaResponse = z.object({
   schemaJson: z.string().min(1),
@@ -101,6 +102,15 @@ async function generateSchemaDraft(args: {
         "Do not use external $ref, unevaluatedProperties, unevaluatedItems, if, then, else, dependentSchemas, or dependentRequired.",
         "Prefer root type `object`, descriptive `description` fields, `required` for required fields, and `additionalProperties: false` for fixed objects.",
         "Use required fields unless the user clearly asks for optional fields.",
+        `When the user asks for clicks, hovers, modal windows, scrolling, waiting, detail-page visits, per-item links, merging detail data, optional enrichment by link, or 404 verification, include a root \`${WORKFLOW_EXTENSION_KEY}\` object.`,
+        `The \`${WORKFLOW_EXTENSION_KEY}\` object is metadata, not output data. It must use version 1 and a steps array.`,
+        "Supported workflow steps: extract, click, hover, waitForSelector, scroll, goto, forEach, detail.",
+        "Use extract steps for page-state extraction. Put partial extraction schemas on extract/detail steps when the workflow needs intermediate result links before producing the final output.",
+        "When an extract step schema returns an object shaped like part of the final output, omit name/outputPath so the object merges into workflow state. Use outputPath like `$.items` when the extract step returns a bare array.",
+        "For detail links, use a forEach step over the result items and a detail step with urlPath pointing at each item's link field.",
+        "For missing detail pages, support these behaviors: skip, keepWithStatus, errorBucket, keepWithStatusAndErrorBucket.",
+        "Default missingDetailBehavior should be keepWithStatus unless the request clearly asks to omit missing items or collect errors separately.",
+        "When 404 verification is requested, include compatible output fields such as detailStatus, detailOk, detailError, skippedCount, or errors as appropriate for the behavior.",
       ].join("\n"),
       prompt: [
         `User extraction request:\n${args.prompt}`,
@@ -195,31 +205,6 @@ function assertJsonSchemaPath(outPath: string): void {
   if (!outPath.endsWith(".json")) {
     throw new Error(`Generated schemas must be saved as .json files. Received: ${outPath}`);
   }
-}
-
-function isJsonValue(value: unknown): value is JsonValue {
-  if (value === null) {
-    return true;
-  }
-
-  const type = typeof value;
-  if (type === "string" || type === "boolean") {
-    return true;
-  }
-
-  if (type === "number") {
-    return Number.isFinite(value);
-  }
-
-  if (Array.isArray(value)) {
-    return value.every(isJsonValue);
-  }
-
-  if (type === "object") {
-    return Object.values(value as Record<string, unknown>).every(isJsonValue);
-  }
-
-  return false;
 }
 
 function formatJson(value: unknown): string {
