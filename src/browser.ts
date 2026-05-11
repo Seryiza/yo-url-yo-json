@@ -46,13 +46,14 @@ export async function launchBrowser(options: { headed: boolean; progress?: Progr
   options.progress?.info(`cdp port: ${port}`);
   options.progress?.info(`fingerprint seed: ${fingerprint}`);
 
-  const startSpinner = options.progress?.spinner("Running CloakBrowser container");
-  startSpinner?.start();
+  options.progress?.status("Running CloakBrowser container...");
   const started = spawnSync("docker", args, {
     encoding: "utf8",
     stdio: ["ignore", "pipe", "pipe"],
   });
-  startSpinner?.stop(started.status === 0 ? "CloakBrowser container started." : undefined);
+  if (started.status === 0) {
+    options.progress?.status("CloakBrowser container started.");
+  }
 
   if (started.status !== 0) {
     throw new Error(
@@ -70,14 +71,12 @@ export async function launchBrowser(options: { headed: boolean; progress?: Progr
   const connectionEndpoint = `${endpoint}?fingerprint=${encodeURIComponent(fingerprint)}`;
 
   try {
-    const cdpSpinner = options.progress?.spinner("Waiting for CloakBrowser CDP endpoint");
-    cdpSpinner?.start();
+    options.progress?.status("Waiting for CloakBrowser CDP endpoint...");
     let wsEndpoint: string;
     try {
       wsEndpoint = await waitForCdp(endpoint, fingerprint);
-      cdpSpinner?.stop("CloakBrowser CDP endpoint is ready.");
+      options.progress?.status("CloakBrowser CDP endpoint is ready.");
     } catch (error) {
-      cdpSpinner?.stop();
       throw error;
     }
     options.progress?.info(`cdp endpoint: ${endpoint}`);
@@ -86,16 +85,14 @@ export async function launchBrowser(options: { headed: boolean; progress?: Progr
     options.progress?.info("cdp connect mode: http endpoint");
     options.progress?.info(`cdp connect timeout: ${CDP_CONNECT_TIMEOUT_MS}ms`);
 
-    const connectSpinner = options.progress?.spinner("Connecting Playwright over CDP");
-    connectSpinner?.start();
+    options.progress?.status("Connecting Playwright over CDP...");
     let browser: Browser;
     try {
       browser = await chromium.connectOverCDP(connectionEndpoint, {
         timeout: CDP_CONNECT_TIMEOUT_MS,
       });
-      connectSpinner?.stop("Playwright connected to CloakBrowser.");
+      options.progress?.status("Playwright connected to CloakBrowser.");
     } catch (error) {
-      connectSpinner?.stop();
       throw error;
     }
     return new DockerCloakBrowser(browser, containerName);

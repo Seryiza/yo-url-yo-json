@@ -7,7 +7,6 @@ import { generateObject } from "ai";
 import * as z from "zod";
 import { createCodexModel } from "./model";
 import { loadSchema } from "./schema";
-import { Spinner } from "./spinner";
 import type { JsonSchema, JsonValue } from "./types";
 
 const generatedSchemaResponse = z.object({
@@ -86,8 +85,7 @@ async function generateSchemaDraft(args: {
   feedback: string;
   previousSchema: JsonSchema | null;
 }): Promise<z.infer<typeof generatedSchemaResponse>> {
-  const spinner = new Spinner("Generating schema with Codex");
-  spinner.start();
+  process.stderr.write("Generating schema with Codex...\n");
 
   try {
     const result = await generateObject({
@@ -114,10 +112,9 @@ async function generateSchemaDraft(args: {
         .join("\n\n"),
     });
 
-    spinner.stop("Schema draft generated.");
+    process.stderr.write("Schema draft generated.\n");
     return result.object;
   } catch (error) {
-    spinner.stop();
     throw new Error(
       [
         "Codex schema generation failed.",

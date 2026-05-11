@@ -1,5 +1,3 @@
-import { Spinner } from "./spinner";
-
 export class Progress {
   private current = 0;
 
@@ -27,26 +25,9 @@ export class Progress {
     console.error(`[warn] ${message}`);
   }
 
-  spinner(message: string): ProgressSpinner {
-    return new ProgressSpinner(this.enabled, message);
-  }
-}
-
-class ProgressSpinner {
-  private readonly spinner: Spinner | null;
-
-  constructor(
-    enabled: boolean,
-    message: string,
-  ) {
-    this.spinner = enabled ? new Spinner(message) : null;
-  }
-
-  start(): void {
-    this.spinner?.start();
-  }
-
-  stop(status?: string): void {
-    this.spinner?.stop(status);
+  status(message: string): void {
+    if (this.enabled) {
+      console.error(message);
+    }
   }
 }

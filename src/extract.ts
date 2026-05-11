@@ -33,16 +33,14 @@ export async function parseWithBrowser(args: {
   try {
     args.progress.step("Navigating to target URL");
     args.progress.info(`url: ${args.options.url}`);
-    const navigate = args.progress.spinner("Loading target page");
-    navigate.start();
+    args.progress.status("Loading target page...");
     try {
       await page.goto(args.options.url, {
         waitUntil: "domcontentloaded",
         timeout: args.options.gotoTimeoutMs,
       });
-      navigate.stop("Target page loaded.");
+      args.progress.status("Target page loaded.");
     } catch (error) {
-      navigate.stop();
       throw error;
     }
 
@@ -98,15 +96,13 @@ async function tryCachedScript(args: {
 
   args.progress.info(`cache hit for origin: ${args.key.origin}`);
 
-  const spinner = args.progress.spinner("Running cached extractor");
+  args.progress.status("Running cached extractor...");
   try {
-    spinner.start();
     const data = await withTimeout(args.page.evaluate(cached.code), args.options.timeoutMs);
     const validated = validateData(args.schemaBundle, data, "Cached extractor output");
-    spinner.stop("Cached extractor output is schema-valid.");
+    args.progress.status("Cached extractor output is schema-valid.");
     return { ok: true, data: validated };
   } catch (error) {
-    spinner.stop();
     if (error instanceof TimeoutError) {
       args.progress.warn("cached extractor timed out");
       return { ok: false, reason: "cached-script-timed-out" };
@@ -138,15 +134,13 @@ async function generateRunAndCache(args: {
 
   args.progress.step("Generating reusable Playwright extractor");
   args.progress.info(`model: ${args.options.model}`);
-  const spinner = args.progress.spinner("Generating Playwright extractor with Codex");
-  spinner.start();
+  args.progress.status("Generating Playwright extractor with Codex...");
 
   let generated: { code: unknown };
   try {
     generated = await scraper.generate(args.page, output);
-    spinner.stop("Playwright extractor generated.");
+    args.progress.status("Playwright extractor generated.");
   } catch (error) {
-    spinner.stop();
     throw new Error(
       [
         "Codex extractor generation failed.",
@@ -163,14 +157,12 @@ async function generateRunAndCache(args: {
   const code = normalizeGeneratedCode(generated.code);
 
   args.progress.step("Running generated extractor");
-  const runGenerated = args.progress.spinner("Executing generated extractor");
-  runGenerated.start();
+  args.progress.status("Executing generated extractor...");
   let data: unknown;
   try {
     data = await withTimeout(args.page.evaluate(code), args.options.timeoutMs);
-    runGenerated.stop("Generated extractor executed.");
+    args.progress.status("Generated extractor executed.");
   } catch (error) {
-    runGenerated.stop();
     throw error;
   }
 
