@@ -15,26 +15,13 @@
 - Codex auth: `codex login` or `OPENAI_API_KEY`
 - Project deps: `bun install`
 
-From another TypeScript project:
+## Usage
 
-```bash
-bun add -d yo-url-yo-json
-```
-
-```json
-{
-  "scripts": {
-    "extract": "yo-url-yo-json parse --url https://example.com --schema ./schemas/product.schema.json",
-    "schema": "yo-url-yo-json generate-schema --out ./schemas/product.schema.json"
-  }
-}
-```
-
-## Agent Skill
+### Agent Skill
 
 Project-local skill: `skills/yo-url-yo-json/SKILL.md`.
 
-## Usage
+### CLI
 
 Generate a JSON Schema with Codex:
 
@@ -58,6 +45,23 @@ Useful options for `yo-url-yo-json parse`:
 --force-regenerate
 --headed
 --verbose
+```
+
+### package.json
+
+From another TypeScript project:
+
+```bash
+bun add -d yo-url-yo-json
+```
+
+```json
+{
+  "scripts": {
+    "extract": "yo-url-yo-json parse --url https://example.com --schema ./schemas/product.schema.json",
+    "schema": "yo-url-yo-json generate-schema --out ./schemas/product.schema.json"
+  }
+}
 ```
 
 Stdout is parsed JSON. Diagnostics go to stderr.
