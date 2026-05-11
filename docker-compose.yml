@@ -4,6 +4,8 @@ services:
     command: ["cloakserve"]
     environment:
       CLOAKBROWSER_AUTO_UPDATE: "false"
+    ports:
+      - "127.0.0.1:9222:9222"
     volumes:
       - cloakbrowser-cache:/root/.cloakbrowser
 

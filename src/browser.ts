@@ -1,219 +1,109 @@
-import { spawnSync } from "node:child_process";
-import { randomInt, randomUUID } from "node:crypto";
-import { existsSync } from "node:fs";
-import { createServer } from "node:net";
-import { dirname, resolve } from "node:path";
-import { setTimeout as delay } from "node:timers/promises";
-import { fileURLToPath } from "node:url";
-import { chromium, type Browser, type Page } from "playwright-core";
+import { launch as launchCloakBrowser } from "cloakbrowser";
+import { chromium, type Browser } from "playwright-core";
 import type { Progress } from "./progress";
 
 const CDP_CONNECT_TIMEOUT_MS = 120_000;
-const DOCKER_COMPOSE_FILE = findDockerComposeFile();
+const EXTERNAL_CDP_ENV = "YOYJ_CDP_ENDPOINT";
+const VALID_CDP_PROTOCOLS = new Set(["http:", "https:", "ws:", "wss:"]);
 
-export async function launchBrowser(options: { headed: boolean; progress?: Progress }) {
-  cleanupStaleContainers(options.progress);
+type LaunchOptions = {
+  headed: boolean;
+  progress?: Progress;
+};
 
-  const port = await getFreePort();
-  const fingerprint = String(randomInt(10_000, 100_000));
-  const containerName = `yo-url-yo-json-cloak-${process.pid}-${randomUUID().slice(0, 8)}`;
-  const args = [
-    "compose",
-    "-f",
-    DOCKER_COMPOSE_FILE,
-    "run",
-    "-d",
-    "--rm",
-    "--name",
-    containerName,
-    "-p",
-    `127.0.0.1:${port}:9222`,
-    "cloakbrowser",
-  ];
+type BrowserLauncherDependencies = {
+  connectOverCDP: typeof chromium.connectOverCDP;
+  launchLocalBrowser: typeof launchCloakBrowser;
+  env: Record<string, string | undefined>;
+};
 
-  if (options.headed) {
-    args.push("cloakserve", "--headless=false");
+const defaultDependencies: BrowserLauncherDependencies = {
+  connectOverCDP: chromium.connectOverCDP.bind(chromium),
+  launchLocalBrowser: launchCloakBrowser,
+  env: process.env,
+};
+
+export async function launchBrowser(
+  options: LaunchOptions,
+  dependencies: BrowserLauncherDependencies = defaultDependencies,
+): Promise<Browser> {
+  const externalEndpoint = dependencies.env[EXTERNAL_CDP_ENV]?.trim();
+
+  if (externalEndpoint) {
+    return connectToExternalCdp(externalEndpoint, options, dependencies);
   }
 
-  options.progress?.info(`compose file: ${DOCKER_COMPOSE_FILE}`);
-  options.progress?.info(`container: ${containerName}`);
-  options.progress?.info(`cdp port: ${port}`);
-  options.progress?.info(`fingerprint seed: ${fingerprint}`);
+  return launchLocalCloakBrowser(options, dependencies);
+}
 
-  options.progress?.status("Running CloakBrowser container...");
-  const started = spawnSync("docker", args, {
-    encoding: "utf8",
-    stdio: ["ignore", "pipe", "pipe"],
-  });
-  if (started.status === 0) {
-    options.progress?.status("CloakBrowser container started.");
-  }
+async function connectToExternalCdp(
+  endpoint: string,
+  options: LaunchOptions,
+  dependencies: BrowserLauncherDependencies,
+): Promise<Browser> {
+  validateCdpEndpoint(endpoint);
 
-  if (started.status !== 0) {
-    throw new Error(
-      [
-        "Failed to start CloakBrowser Docker container.",
-        `Compose file: ${DOCKER_COMPOSE_FILE}`,
-        `Command: docker ${args.join(" ")}`,
-        `Error: ${started.stderr.trim() || started.stdout.trim() || `exit code ${started.status}`}`,
-        "Try: bun run docker:pull",
-      ].join("\n"),
-    );
-  }
-
-  const endpoint = `http://127.0.0.1:${port}`;
-  const connectionEndpoint = `${endpoint}?fingerprint=${encodeURIComponent(fingerprint)}`;
+  options.progress?.info(`cdp endpoint: ${endpoint}`);
+  options.progress?.info("cdp connect mode: external");
+  options.progress?.info(`cdp connect timeout: ${CDP_CONNECT_TIMEOUT_MS}ms`);
+  options.progress?.status("Connecting Playwright over CDP...");
 
   try {
-    options.progress?.status("Waiting for CloakBrowser CDP endpoint...");
-    let wsEndpoint: string;
-    try {
-      wsEndpoint = await waitForCdp(endpoint, fingerprint);
-      options.progress?.status("CloakBrowser CDP endpoint is ready.");
-    } catch (error) {
-      throw error;
-    }
-    options.progress?.info(`cdp endpoint: ${endpoint}`);
-    options.progress?.info(`cdp connection endpoint: ${connectionEndpoint}`);
-    options.progress?.info(`cdp websocket endpoint: ${wsEndpoint}`);
-    options.progress?.info("cdp connect mode: http endpoint");
-    options.progress?.info(`cdp connect timeout: ${CDP_CONNECT_TIMEOUT_MS}ms`);
-
-    options.progress?.status("Connecting Playwright over CDP...");
-    let browser: Browser;
-    try {
-      browser = await chromium.connectOverCDP(connectionEndpoint, {
-        timeout: CDP_CONNECT_TIMEOUT_MS,
-      });
-      options.progress?.status("Playwright connected to CloakBrowser.");
-    } catch (error) {
-      throw error;
-    }
-    return new DockerCloakBrowser(browser, containerName);
+    const browser = await dependencies.connectOverCDP(endpoint, {
+      timeout: CDP_CONNECT_TIMEOUT_MS,
+    });
+    options.progress?.status("Playwright connected to browser.");
+    return browser;
   } catch (error) {
-    const logs = getContainerLogs(containerName);
-    stopContainer(containerName);
     throw new Error(
       [
-        "Failed to connect to CloakBrowser over CDP.",
-        `Container: ${containerName}`,
-        `Endpoint: ${connectionEndpoint}`,
+        "Failed to connect to browser over CDP.",
+        `Endpoint: ${endpoint}`,
         `Original error: ${formatError(error)}`,
-        logs ? `Container logs:\n${logs}` : "Container logs: <empty>",
       ].join("\n"),
       { cause: error },
     );
   }
 }
 
-function findDockerComposeFile(): string {
-  const sourceDir = dirname(fileURLToPath(import.meta.url));
-  const candidates = [
-    resolve(sourceDir, "../docker-compose.yml"),
-    resolve(sourceDir, "../../docker-compose.yml"),
-    resolve(process.cwd(), "docker-compose.yml"),
-  ];
+async function launchLocalCloakBrowser(
+  options: LaunchOptions,
+  dependencies: BrowserLauncherDependencies,
+): Promise<Browser> {
+  const headless = !options.headed;
 
-  return candidates.find(existsSync) ?? candidates[0];
+  options.progress?.info("browser provider: local npm cloakbrowser");
+  options.progress?.info(`headless: ${headless}`);
+  options.progress?.status("Launching local CloakBrowser...");
+
+  try {
+    const browser = await dependencies.launchLocalBrowser({ headless });
+    options.progress?.status("Local CloakBrowser launched.");
+    return browser;
+  } catch (error) {
+    throw new Error(
+      [
+        "Failed to launch local CloakBrowser.",
+        `Headless: ${headless}`,
+        `Original error: ${formatError(error)}`,
+      ].join("\n"),
+      { cause: error },
+    );
+  }
 }
 
-class DockerCloakBrowser {
-  constructor(
-    private readonly browser: Browser,
-    private readonly containerName: string,
-  ) {}
+function validateCdpEndpoint(endpoint: string): void {
+  let url: URL;
 
-  async newPage(): Promise<Page> {
-    return this.browser.newPage();
+  try {
+    url = new URL(endpoint);
+  } catch {
+    throw new Error(`Invalid ${EXTERNAL_CDP_ENV}: expected an http, https, ws, or wss URL.`);
   }
 
-  async close(): Promise<void> {
-    await this.browser.close().catch(() => undefined);
-    stopContainer(this.containerName);
+  if (!VALID_CDP_PROTOCOLS.has(url.protocol)) {
+    throw new Error(`Invalid ${EXTERNAL_CDP_ENV}: expected an http, https, ws, or wss URL.`);
   }
-}
-
-async function getFreePort(): Promise<number> {
-  return new Promise((resolve, reject) => {
-    const server = createServer();
-    server.unref();
-    server.on("error", reject);
-    server.listen(0, "127.0.0.1", () => {
-      const address = server.address();
-      server.close(() => {
-        if (address && typeof address === "object") {
-          resolve(address.port);
-        } else {
-          reject(new Error("Failed to allocate a local port for CloakBrowser CDP."));
-        }
-      });
-    });
-  });
-}
-
-async function waitForCdp(endpoint: string, fingerprint: string): Promise<string> {
-  const deadline = Date.now() + 30_000;
-  let lastError = "";
-  const versionEndpoint = `${endpoint}/json/version?fingerprint=${encodeURIComponent(fingerprint)}`;
-
-  while (Date.now() < deadline) {
-    try {
-      const response = await fetch(versionEndpoint);
-      if (response.ok) {
-        const body = (await response.json()) as { webSocketDebuggerUrl?: unknown };
-        if (typeof body.webSocketDebuggerUrl === "string" && body.webSocketDebuggerUrl.length > 0) {
-          return body.webSocketDebuggerUrl;
-        }
-        lastError = "missing webSocketDebuggerUrl in /json/version";
-      } else {
-        lastError = `${response.status} ${response.statusText}`;
-      }
-    } catch (error) {
-      lastError = error instanceof Error ? error.message : String(error);
-    }
-
-    await delay(250);
-  }
-
-  throw new Error(
-    [
-      "Timed out waiting for CloakBrowser CDP server.",
-      `Endpoint: ${versionEndpoint}`,
-      `Last error: ${lastError || "none"}`,
-    ].join("\n"),
-  );
-}
-
-function stopContainer(containerName: string): void {
-  spawnSync("docker", ["stop", containerName], {
-    stdio: "ignore",
-  });
-}
-
-function cleanupStaleContainers(progress?: Progress): void {
-  const listed = spawnSync("docker", ["ps", "-q", "--filter", "name=^/yo-url-yo-json-cloak-"], {
-    encoding: "utf8",
-    stdio: ["ignore", "pipe", "ignore"],
-  });
-
-  const ids = listed.stdout.trim().split(/\s+/).filter(Boolean);
-  if (!ids.length) {
-    return;
-  }
-
-  progress?.warn(`stopping ${ids.length} stale CloakBrowser container(s) from previous runs`);
-  spawnSync("docker", ["stop", ...ids], {
-    stdio: "ignore",
-  });
-}
-
-function getContainerLogs(containerName: string): string {
-  const logs = spawnSync("docker", ["logs", "--tail", "80", containerName], {
-    encoding: "utf8",
-    stdio: ["ignore", "pipe", "pipe"],
-  });
-
-  return [logs.stdout, logs.stderr].filter(Boolean).join("\n").trim();
 }
 
 function formatError(error: unknown): string {

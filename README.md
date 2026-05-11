@@ -17,15 +17,12 @@
 ## usage examples
 - [bun + typescript watcher for house.kg search result pages](https://github.com/Seryiza/housekg-telegram-notifications)
 
-## install
-
-- Bun
-- Docker
-- Codex auth: `codex login` or `OPENAI_API_KEY`
-- Project deps: `bun install`
+## dependencies
+- bun
+- codex: `codex login` or `OPENAI_API_KEY`
+- optional: running CDP service; CloakBrowser as fallback (npm)
 
 ## usage
-
 ### agent skill
 
 Project-local skill: `skills/yo-url-yo-json/SKILL.md`.
@@ -77,34 +74,31 @@ Stdout is parsed JSON. Diagnostics go to stderr.
 
 ## runtime flow
 
-```mermaid
-flowchart TD
-  A["URL + JSON Schema"] --> B["Start CloakBrowser via Docker"]
-  B --> C{"Cached extractor valid?"}
-  C -- "yes" --> D["Run cached Playwright extractor"]
-  C -- "no" --> E["Generate extractor with llm-scraper + Codex CLI"]
-  D --> F["Validate JSON Schema"]
-  E --> F
-  F --> G["Print JSON"]
+1. Browser: `YOYJ_CDP_ENDPOINT` CDP service, else local npm `cloakbrowser`.
+2. Extractor: cached script, else llm-scraper + Codex CLI generation.
+3. Output: JSON Schema validation, then stdout.
+
+Generated extractors: `.yo-url-yo-json/scripts/`.
+
+`YOYJ_CDP_ENDPOINT` supports `http`, `https`, `ws`, and `wss`.
+
+## nix development shell
+
+```bash
+nix develop
+bun install
+bun test
 ```
 
-Generated extractors are saved under `.yo-url-yo-json/scripts/`.
+Direnv:
+
+```bash
+direnv allow
+```
 
 ## schemas
 
 The project uses [JSON Schema](https://json-schema.org/). Schema paths must end in `.json`.
-
-## cloakbrowser docker runtime
-
-We use CloakBrowser via Docker.
-
-Useful commands:
-
-```bash
-bun run docker:pull
-bun run docker:cleanup
-yo-url-yo-json parse --url "https://example.com" --schema ./examples/product.schema.json
-```
 
 ## development
 

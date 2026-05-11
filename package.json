@@ -39,7 +39,6 @@
   },
   "scripts": {
     "build": "bun build --target=bun --packages=external --outfile=dist/yo-url-yo-json.js commands/index.ts && bun build --target=node --packages=external --outfile=dist/yo-url-yo-json-node.js commands/index.ts && chmod +x dist/yo-url-yo-json.js dist/yo-url-yo-json-node.js",
-    "docker:cleanup": "bun run dev-scripts/cleanup-cloakbrowser.ts",
     "docker:pull": "docker compose pull cloakbrowser",
     "prepublishOnly": "bun run typecheck && bun test && bun run build && npm pack --dry-run",
     "typecheck": "tsc --noEmit",
@@ -49,6 +48,7 @@
     "@openai/codex": "0.130.0",
     "ai": "^6.0.0",
     "ai-sdk-provider-codex-cli": "^1.0.0",
+    "cloakbrowser": "^0.3.28",
     "commander": "^14.0.2",
     "llm-scraper": "^2.0.0",
     "playwright-core": "1.55.0",

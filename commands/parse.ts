@@ -68,7 +68,7 @@ export function createParseCommand(): Command {
         progress.info("schema format: json-schema");
         progress.info(`cache key: ${key.slug}`);
 
-        progress.step("Starting CloakBrowser Docker container");
+        progress.step("Starting browser session");
         browser = await launchBrowser({
           headed: options.headed,
           progress,
