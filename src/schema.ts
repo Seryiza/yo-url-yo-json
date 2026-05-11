@@ -49,6 +49,23 @@ function createJsonSchemaBundle(schema: JsonSchema): SchemaBundle {
   };
 }
 
+export function validateJsonSchemaData(schema: JsonSchema, data: unknown, label: string): unknown {
+  let zodSchema: z.ZodType;
+
+  try {
+    zodSchema = z.fromJSONSchema(schema as Parameters<typeof z.fromJSONSchema>[0]);
+  } catch (error) {
+    throw new Error(`Failed to convert ${label} JSON Schema to Zod schema: ${formatError(error)}`);
+  }
+
+  const result = zodSchema.safeParse(data);
+  if (!result.success) {
+    throw new SchemaValidationError(`${label} did not match the JSON Schema.`, result.error);
+  }
+
+  return result.data;
+}
+
 export function validateData(bundle: SchemaBundle, data: unknown, label: string): unknown {
   try {
     return bundle.validate(data);

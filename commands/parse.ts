@@ -29,6 +29,7 @@ export function createParseCommand(): Command {
     .option("--timeout-ms <ms>", "Extractor execution timeout", parsePositiveInt, 30_000)
     .option("--goto-timeout-ms <ms>", "Page navigation timeout", parsePositiveInt, 45_000)
     .option("--force-regenerate", "Skip cached script and generate a new extractor", false)
+    .option("--truncate-long-html-for-llm", "Allow truncating oversized HTML samples for LLM code generation", false)
     .option("--headed", "Run CloakBrowser headed", false)
     .option("--verbose", "Print diagnostics to stderr", false)
     .action(async (rawOptions) => {
@@ -52,6 +53,7 @@ export function createParseCommand(): Command {
           timeoutMs: rawOptions.timeoutMs,
           gotoTimeoutMs: rawOptions.gotoTimeoutMs,
           forceRegenerate: Boolean(rawOptions.forceRegenerate),
+          truncateLongHtmlForLlm: Boolean(rawOptions.truncateLongHtmlForLlm),
           headed: Boolean(rawOptions.headed),
           verbose: Boolean(rawOptions.verbose),
         };

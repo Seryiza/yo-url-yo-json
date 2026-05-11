@@ -91,6 +91,26 @@ describe("schema loading", () => {
                     },
                   },
                 },
+                {
+                  type: "forEach",
+                  itemsPath: "$.items",
+                  steps: [
+                    {
+                      type: "detail",
+                      urlPath: "$.detailUrl",
+                      routePattern: "https://example.com/details/:id",
+                      sampleSize: 3,
+                      cachePolicy: "route",
+                      regenerateOnSchemaFailure: true,
+                      schema: {
+                        type: "object",
+                        properties: {
+                          title: { type: "string" },
+                        },
+                      },
+                    },
+                  ],
+                },
               ],
             },
           },
@@ -102,6 +122,10 @@ describe("schema loading", () => {
 
       const bundle = await loadSchema(schemaPath);
       expect(bundle.workflow?.missingDetailBehavior).toBe("keepWithStatus");
+      expect(bundle.workflow?.steps[1]).toMatchObject({
+        type: "forEach",
+        itemsPath: "$.items",
+      });
       expect(bundle.outputSchema["x-yoyj-workflow"]).toBeUndefined();
 
       const data = validateData(
@@ -152,6 +176,49 @@ describe("schema loading", () => {
             "x-yoyj-workflow": {
               version: 1,
               steps: [{ type: "hover" }],
+            },
+          },
+          null,
+          2,
+        )}\n`,
+        "utf8",
+      );
+
+      await expect(loadSchema(schemaPath)).rejects.toThrow("Invalid x-yoyj-workflow");
+    } finally {
+      await rm(tempDir, { recursive: true, force: true });
+    }
+  });
+
+  test("rejects invalid detail cache metadata", async () => {
+    const tempDir = await mkdtemp(resolve(tmpdir(), "yoyj-schema-"));
+    const schemaPath = resolve(tempDir, "invalid-detail-cache.schema.json");
+
+    try {
+      await writeFile(
+        schemaPath,
+        `${JSON.stringify(
+          {
+            type: "object",
+            properties: {
+              items: { type: "array" },
+            },
+            "x-yoyj-workflow": {
+              version: 1,
+              steps: [
+                {
+                  type: "forEach",
+                  itemsPath: "$.items",
+                  steps: [
+                    {
+                      type: "detail",
+                      urlPath: "$.detailUrl",
+                      cachePolicy: "origin",
+                      sampleSize: 0,
+                    },
+                  ],
+                },
+              ],
             },
           },
           null,

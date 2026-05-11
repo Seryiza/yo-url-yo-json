@@ -108,6 +108,8 @@ async function generateSchemaDraft(args: {
         "Use extract steps for page-state extraction. Put partial extraction schemas on extract/detail steps when the workflow needs intermediate result links before producing the final output.",
         "When an extract step schema returns an object shaped like part of the final output, omit name/outputPath so the object merges into workflow state. Use outputPath like `$.items` when the extract step returns a bare array.",
         "For detail links, use a forEach step over the result items and a detail step with urlPath pointing at each item's link field.",
+        "For repeated detail pages with URL ids, add routePattern such as `https://example.com/details/:id` so one reusable detail extractor can be generated and cached for that route.",
+        "Use detail sampleSize only when the user asks for stronger coverage; otherwise omit it so the parser uses its default multi-sample behavior.",
         "For missing detail pages, support these behaviors: skip, keepWithStatus, errorBucket, keepWithStatusAndErrorBucket.",
         "Default missingDetailBehavior should be keepWithStatus unless the request clearly asks to omit missing items or collect errors separately.",
         "When 404 verification is requested, include compatible output fields such as detailStatus, detailOk, detailError, skippedCount, or errors as appropriate for the behavior.",

@@ -10,6 +10,7 @@ const missingDetailBehaviorSchema = z.enum([
   "keepWithStatusAndErrorBucket",
 ] satisfies MissingDetailBehavior[]);
 const mergeStrategySchema = z.enum(["merge", "nest"]);
+const detailCachePolicySchema = z.enum(["route", "none"]);
 const waitStateSchema = z.enum(["attached", "detached", "visible", "hidden"]);
 const waitUntilSchema = z.enum(["domcontentloaded", "load", "networkidle"]);
 
@@ -69,6 +70,11 @@ const workflowStepSchema: z.ZodType<WorkflowStep> = z.lazy(() =>
       statusField: z.string().min(1).optional(),
       okField: z.string().min(1).optional(),
       errorField: z.string().min(1).optional(),
+      routePattern: z.string().min(1).optional(),
+      codegenKey: z.string().min(1).optional(),
+      sampleSize: z.number().int().positive().optional(),
+      cachePolicy: detailCachePolicySchema.optional(),
+      regenerateOnSchemaFailure: z.boolean().optional(),
     }),
   ]),
 );

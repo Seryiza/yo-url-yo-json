@@ -33,6 +33,8 @@ export type CachedScript = {
   metadata: ScriptMetadata;
 };
 
+export type ScriptCacheKind = "root" | "workflow-detail";
+
 export type ScriptMetadata = {
   origin: string;
   schemaHash: string;
@@ -42,6 +44,12 @@ export type ScriptMetadata = {
   generator: "llm-scraper";
   model: string;
   attempts: number;
+  kind?: ScriptCacheKind;
+  routePattern?: string;
+  codegenKey?: string;
+  workflowStep?: string;
+  sampleUrls?: string[];
+  sampleStatuses?: Array<number | null>;
 };
 
 export type ParseOptions = {
@@ -53,6 +61,7 @@ export type ParseOptions = {
   timeoutMs: number;
   gotoTimeoutMs: number;
   forceRegenerate: boolean;
+  truncateLongHtmlForLlm: boolean;
   headed: boolean;
   verbose: boolean;
 };
@@ -64,6 +73,8 @@ export type MissingDetailBehavior =
   | "keepWithStatusAndErrorBucket";
 
 export type MergeStrategy = "merge" | "nest";
+
+export type DetailCachePolicy = "route" | "none";
 
 export type WorkflowWaitState = "attached" | "detached" | "visible" | "hidden";
 
@@ -110,6 +121,11 @@ export type WorkflowStep =
       statusField?: string;
       okField?: string;
       errorField?: string;
+      routePattern?: string;
+      codegenKey?: string;
+      sampleSize?: number;
+      cachePolicy?: DetailCachePolicy;
+      regenerateOnSchemaFailure?: boolean;
     };
 
 export type ExtractionWorkflow = {
