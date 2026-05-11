@@ -1,6 +1,6 @@
 {
   "name": "yo-url-yo-json",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Extract validated JSON from webpages using JSON Schema, CloakBrowser, llm-scraper, and Codex CLI.",
   "license": "MIT",
   "repository": {
@@ -54,9 +54,6 @@
     "playwright-core": "1.55.0",
     "tsx": "^4.21.0",
     "zod": "^4.1.12"
-  },
-  "overrides": {
-    "@openai/codex": "0.130.0"
   },
   "devDependencies": {
     "@types/bun": "^1.3.3",
