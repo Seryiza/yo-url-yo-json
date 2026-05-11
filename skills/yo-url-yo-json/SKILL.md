@@ -28,8 +28,8 @@ When the user describes what they want extracted but has no schema yet:
 bun commands/generate-schema.ts --out ./schema.ts
 ```
 
-The command asks for the extraction prompt interactively, shows a generated Zod schema, and lets
-the user approve, edit with suggestions, regenerate, or cancel.
+The command asks for the extraction prompt interactively, shows a generated Zod schema, then saves
+when the user presses Enter or regenerates when the user enters suggestions.
 
 ## Behavior
 

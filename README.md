@@ -82,19 +82,16 @@ Stdout is reserved for parsed JSON. Diagnostics are written to stderr.
 ## Schema Generation
 
 The schema generator asks for a prompt, drafts a Zod module, validates that it can be imported
-and converted with `z.toJSONSchema()`, then asks for approval before saving.
+and converted with `z.toJSONSchema()`, then shows the draft for review.
 
 ```bash
 bun commands/generate-schema.ts --out ./schemas/article.schema.ts
 ```
 
-Interactive choices:
+After each draft:
 
 ```text
-[a]pprove      save the current schema
-[e]dit         enter suggestions and regenerate
-[r]egenerate   create another draft for the same prompt
-[c]ancel       exit without saving
+Press Enter to save, or enter suggestions to regenerate.
 ```
 
 ## Schemas

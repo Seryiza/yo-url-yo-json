@@ -47,7 +47,7 @@ export async function runSchemaGenerator(options: GenerateSchemaOptions): Promis
             "Generated schema validation failed.",
             "Step: importing the generated Zod module and converting it to JSON Schema.",
             `Original error: ${formatError(error)}`,
-            "Try regenerating, or run again and choose edit with a suggestion like: use only plain z.object, z.string, z.number, z.boolean, z.array, and z.enum fields.",
+            "Run again with a prompt that asks for only plain z.object, z.string, z.number, z.boolean, z.array, and z.enum fields.",
           ].join("\n"),
           { cause: error },
         );
@@ -57,28 +57,17 @@ export async function runSchemaGenerator(options: GenerateSchemaOptions): Promis
       output.write(`${lastSource}\n\n`);
       output.write(`Rationale: ${draft.rationale}\n\n`);
 
-      const action = await askChoice(rl, "Approve and save? [a]pprove, [e]dit, [r]egenerate, [c]ancel: ");
+      const suggestions = (
+        await askWithReadline(rl, "Press Enter to save, or enter suggestions to regenerate: ")
+      ).trim();
 
-      if (action === "a" || action === "approve") {
+      if (!suggestions) {
         await saveSchema(outPath, lastSource);
         output.write(`Saved schema to ${outPath}\n`);
         return;
       }
 
-      if (action === "e" || action === "edit") {
-        feedback = await askWithReadline(rl, "Enter suggestions to fix the schema: ");
-        continue;
-      }
-
-      if (action === "r" || action === "regenerate") {
-        feedback = "Regenerate a different schema for the same request. Keep the same output module contract.";
-        continue;
-      }
-
-      if (action === "c" || action === "cancel") {
-        output.write("Cancelled. No schema was saved.\n");
-        return;
-      }
+      feedback = suggestions;
     }
   } finally {
     rl.close();
@@ -166,15 +155,6 @@ async function askRequired(question: string): Promise<string> {
     }
   } finally {
     rl.close();
-  }
-}
-
-async function askChoice(rl: ReturnType<typeof createInterface>, question: string): Promise<string> {
-  while (true) {
-    const answer = (await askWithReadline(rl, question)).trim().toLowerCase();
-    if (["a", "approve", "e", "edit", "r", "regenerate", "c", "cancel"].includes(answer)) {
-      return answer;
-    }
   }
 }
 
