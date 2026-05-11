@@ -8,20 +8,29 @@
 
 `yo-url-yo-json` is a Bun + TypeScript CLI for extracting validated JSON from a webpage using [llm-scraper](https://github.com/mishushakov/llm-scraper), [CloakBrowser](https://github.com/CloakHQ/CloakBrowser), and [ai-sdk-provider-codex-cli](https://github.com/ben-vargas/ai-sdk-provider-codex-cli).
 
-## Install
+## how to use it
+1. say what you want to parse via cli or agent skill.
+2. get a generated json schema.
+3. use url + schema to generate reusable parser code.
+4. run it as many times as you want.
+
+## usage examples
+- [bun + typescript watcher for house.kg search result pages](https://github.com/Seryiza/housekg-telegram-notifications)
+
+## install
 
 - Bun
 - Docker
 - Codex auth: `codex login` or `OPENAI_API_KEY`
 - Project deps: `bun install`
 
-## Usage
+## usage
 
-### Agent Skill
+### agent skill
 
 Project-local skill: `skills/yo-url-yo-json/SKILL.md`.
 
-### CLI
+### cli
 
 Generate a JSON Schema with Codex:
 
@@ -66,7 +75,7 @@ bun add -d yo-url-yo-json
 
 Stdout is parsed JSON. Diagnostics go to stderr.
 
-## Runtime Flow
+## runtime flow
 
 ```mermaid
 flowchart TD
@@ -81,11 +90,11 @@ flowchart TD
 
 Generated extractors are saved under `.yo-url-yo-json/scripts/`.
 
-## Schemas
+## schemas
 
 The project uses [JSON Schema](https://json-schema.org/). Schema paths must end in `.json`.
 
-## CloakBrowser Docker Runtime
+## cloakbrowser docker runtime
 
 We use CloakBrowser via Docker.
 
@@ -97,7 +106,7 @@ bun run docker:cleanup
 yo-url-yo-json parse --url "https://example.com" --schema ./examples/product.schema.json
 ```
 
-## Development
+## development
 
 ```bash
 bun run typecheck
