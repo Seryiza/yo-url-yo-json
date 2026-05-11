@@ -130,8 +130,8 @@ bun commands/parse.ts --url "https://example.com" --schema ./examples/product.sc
 ## CloakBrowser Docker Runtime
 
 Docker is used only for CloakBrowser. Bun, TypeScript, `llm-scraper`, and Codex CLI run on the
-host. The parser starts `cloakhq/cloakbrowser:latest` with `cloakserve`, connects over CDP from
-host Playwright, then stops the container when parsing finishes.
+host. The parser starts the `cloakbrowser` service from `docker-compose.yml`, connects over CDP
+from host Playwright, then stops the container when parsing finishes.
 
 CloakBrowser stores its Chromium binary cache in a persistent Docker volume named
 `yo-url-yo-json-cloakbrowser-cache`. This avoids downloading the ~200 MB Chromium update on
@@ -158,18 +158,8 @@ bun commands/parse.ts --url "https://example.com" --schema ./examples/product.sc
 ```
 
 If the CloakBrowser image is not present locally, Docker will pull it automatically on first use.
-Override the image with `YOYJ_CLOAKBROWSER_IMAGE=cloakhq/cloakbrowser:<tag>`.
-
-Useful CloakBrowser runtime overrides:
-
-```bash
-# Re-enable CloakBrowser background updates. Downloads are persisted in the Docker volume.
-YOYJ_CLOAKBROWSER_AUTO_UPDATE=true bun commands/parse.ts --url "https://example.com" --schema ./examples/product.schema.json
-
-# Use another cache volume, or set to "none" for a fully disposable browser cache.
-YOYJ_CLOAKBROWSER_CACHE_VOLUME=my-cloak-cache bun commands/parse.ts --url "https://example.com" --schema ./examples/product.schema.json
-YOYJ_CLOAKBROWSER_CACHE_VOLUME=none bun commands/parse.ts --url "https://example.com" --schema ./examples/product.schema.json
-```
+Edit `docker-compose.yml` if you need to pin a different image, change the cache volume, or
+temporarily re-enable CloakBrowser background updates.
 
 If Codex exits with an error, rerun with `--verbose`, check auth with `codex login` or
 `OPENAI_API_KEY`, and confirm `node_modules/.bin/codex --version` reports the pinned version.

@@ -1,12 +1,15 @@
 import { spawnSync } from "node:child_process";
 import { randomInt, randomUUID } from "node:crypto";
+import { existsSync } from "node:fs";
 import { createServer } from "node:net";
+import { dirname, resolve } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
+import { fileURLToPath } from "node:url";
 import { chromium, type Browser, type Page } from "playwright-core";
 import type { Progress } from "./progress";
 
 const CDP_CONNECT_TIMEOUT_MS = 120_000;
-const DEFAULT_CLOAKBROWSER_CACHE_VOLUME = "yo-url-yo-json-cloakbrowser-cache";
+const DOCKER_COMPOSE_FILE = findDockerComposeFile();
 
 export async function launchBrowser(options: { headed: boolean; progress?: Progress }) {
   cleanupStaleContainers(options.progress);
@@ -14,10 +17,10 @@ export async function launchBrowser(options: { headed: boolean; progress?: Progr
   const port = await getFreePort();
   const fingerprint = String(randomInt(10_000, 100_000));
   const containerName = `yo-url-yo-json-cloak-${process.pid}-${randomUUID().slice(0, 8)}`;
-  const image = process.env.YOYJ_CLOAKBROWSER_IMAGE ?? "cloakhq/cloakbrowser:latest";
-  const cacheVolume = process.env.YOYJ_CLOAKBROWSER_CACHE_VOLUME ?? DEFAULT_CLOAKBROWSER_CACHE_VOLUME;
-  const autoUpdate = process.env.YOYJ_CLOAKBROWSER_AUTO_UPDATE ?? "false";
   const args = [
+    "compose",
+    "-f",
+    DOCKER_COMPOSE_FILE,
     "run",
     "-d",
     "--rm",
@@ -25,24 +28,15 @@ export async function launchBrowser(options: { headed: boolean; progress?: Progr
     containerName,
     "-p",
     `127.0.0.1:${port}:9222`,
-    "-e",
-    `CLOAKBROWSER_AUTO_UPDATE=${autoUpdate}`,
+    "cloakbrowser",
   ];
 
-  if (cacheVolume !== "none") {
-    args.push("-v", `${cacheVolume}:/root/.cloakbrowser`);
-  }
-
-  args.push(image, "cloakserve");
-
   if (options.headed) {
-    args.push("--headless=false");
+    args.push("cloakserve", "--headless=false");
   }
 
-  options.progress?.info(`image: ${image}`);
+  options.progress?.info(`compose file: ${DOCKER_COMPOSE_FILE}`);
   options.progress?.info(`container: ${containerName}`);
-  options.progress?.info(`cache volume: ${cacheVolume}`);
-  options.progress?.info(`auto update: ${autoUpdate}`);
   options.progress?.info(`cdp port: ${port}`);
   options.progress?.info(`fingerprint seed: ${fingerprint}`);
 
@@ -59,7 +53,7 @@ export async function launchBrowser(options: { headed: boolean; progress?: Progr
     throw new Error(
       [
         "Failed to start CloakBrowser Docker container.",
-        `Image: ${image}`,
+        `Compose file: ${DOCKER_COMPOSE_FILE}`,
         `Command: docker ${args.join(" ")}`,
         `Error: ${started.stderr.trim() || started.stdout.trim() || `exit code ${started.status}`}`,
         "Try: bun run docker:pull",
@@ -110,6 +104,17 @@ export async function launchBrowser(options: { headed: boolean; progress?: Progr
       { cause: error },
     );
   }
+}
+
+function findDockerComposeFile(): string {
+  const sourceDir = dirname(fileURLToPath(import.meta.url));
+  const candidates = [
+    resolve(sourceDir, "../docker-compose.yml"),
+    resolve(sourceDir, "../../docker-compose.yml"),
+    resolve(process.cwd(), "docker-compose.yml"),
+  ];
+
+  return candidates.find(existsSync) ?? candidates[0];
 }
 
 class DockerCloakBrowser {

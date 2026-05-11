@@ -1,0 +1,12 @@
+services:
+  cloakbrowser:
+    image: cloakhq/cloakbrowser:latest
+    command: ["cloakserve"]
+    environment:
+      CLOAKBROWSER_AUTO_UPDATE: "false"
+    volumes:
+      - cloakbrowser-cache:/root/.cloakbrowser
+
+volumes:
+  cloakbrowser-cache:
+    name: yo-url-yo-json-cloakbrowser-cache

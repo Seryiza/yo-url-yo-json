@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "docker:cleanup": "bun run dev-scripts/cleanup-cloakbrowser.ts",
-    "docker:pull": "docker pull cloakhq/cloakbrowser:latest",
+    "docker:pull": "docker compose pull cloakbrowser",
     "typecheck": "tsc --noEmit",
     "test": "bun test"
   },

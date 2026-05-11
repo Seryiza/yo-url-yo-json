@@ -46,6 +46,6 @@ Schema, then saves when the user presses Enter or regenerates when the user ente
 - JSON Schema is the public schema format. The CLI validates JSON Schema with Zod's
   `z.fromJSONSchema()` internally.
 - Schema paths must end in `.json`.
-- Docker is used only for CloakBrowser via `cloakhq/cloakbrowser:latest` and CDP.
-- CloakBrowser's binary cache is persisted in Docker volume `yo-url-yo-json-cloakbrowser-cache`, and background updates are disabled by default. Set `YOYJ_CLOAKBROWSER_AUTO_UPDATE=true` for an explicit update run, or `YOYJ_CLOAKBROWSER_CACHE_VOLUME=none` for a fully disposable cache.
+- Docker is used only for CloakBrowser via the `cloakbrowser` service in `docker-compose.yml` and CDP.
+- CloakBrowser's binary cache is persisted in Docker volume `yo-url-yo-json-cloakbrowser-cache`, and background updates are disabled by default in `docker-compose.yml`.
 - Codex auth must be available via `codex login` or `OPENAI_API_KEY`; run the TypeScript entry files from the project root so the project-pinned `@openai/codex` CLI is used.
