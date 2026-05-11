@@ -7,13 +7,13 @@ import { runSchemaGenerator } from "../src/schema-generator";
 export async function runSchemaCli(argv = process.argv): Promise<void> {
   await createSchemaCommand()
     .name("generate-schema")
-    .description("Generate a Zod schema module.")
+    .description("Generate a JSON Schema file.")
     .parseAsync(argv);
 }
 
 export function createSchemaCommand(): Command {
   return new Command("schema")
-    .requiredOption("--out <path>", "Where to save the generated Zod schema module")
+    .requiredOption("--out <path>", "Where to save the generated .json JSON Schema file")
     .option("--model <model>", "Codex model name", process.env.YOYJ_MODEL ?? "gpt-5.5")
     .option("--verbose", "Print provider diagnostics to stderr", false)
     .action(async (rawOptions) => {

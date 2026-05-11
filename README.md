@@ -6,16 +6,16 @@
 
 WIP
 
-URL + Schema -> JSON
+URL + JSON Schema -> JSON
 
 `yo-url-yo-json` is a Bun + TypeScript CLI for extracting structured JSON from a webpage.
-It accepts either a Zod schema module or a JSON Schema file, launches CloakBrowser through
-its Playwright-compatible API, reuses generated Playwright extractors when possible, and
+It accepts a JSON Schema file, launches CloakBrowser through its Playwright-compatible API,
+reuses generated Playwright extractors when possible, and
 regenerates them with `llm-scraper` + Codex CLI when needed.
 
 ## Runtime Flow
 
-1. Read a URL and Zod schema module or JSON Schema file.
+1. Read a URL and JSON Schema file.
 2. For parsing, start a fresh official CloakBrowser Docker container in CDP server mode.
 3. Look for a generated extractor by normalized URL origin + schema hash.
 4. Run the cached extractor when present.
@@ -49,10 +49,10 @@ resolves the project-installed Codex CLI from `node_modules`.
 
 ## Usage
 
-Generate a Zod schema with Codex and approve it interactively:
+Generate a JSON Schema with Codex and approve it interactively:
 
 ```bash
-bun commands/generate-schema.ts --out ./schemas/product.schema.ts
+bun commands/generate-schema.ts --out ./schemas/product.schema.json
 ```
 
 The command asks what data to extract, then shows a schema draft for approval.
@@ -60,7 +60,7 @@ The command asks what data to extract, then shows a schema draft for approval.
 Then parse a page with the saved schema:
 
 ```bash
-bun commands/parse.ts --url "https://example.com" --schema ./schemas/product.schema.ts
+bun commands/parse.ts --url "https://example.com" --schema ./schemas/product.schema.json
 ```
 
 `bun commands/generate-schema.ts` runs on the host and uses the project-installed Codex CLI/auth.
@@ -81,11 +81,11 @@ Stdout is reserved for parsed JSON. Diagnostics are written to stderr.
 
 ## Schema Generation
 
-The schema generator asks for a prompt, drafts a Zod module, validates that it can be imported
-and converted with `z.toJSONSchema()`, then shows the draft for review.
+The schema generator asks for a prompt, drafts a draft 2020-12 JSON Schema, validates that it
+can be converted with `z.fromJSONSchema()`, then shows the draft for review.
 
 ```bash
-bun commands/generate-schema.ts --out ./schemas/article.schema.ts
+bun commands/generate-schema.ts --out ./schemas/article.schema.json
 ```
 
 After each draft:
@@ -96,25 +96,32 @@ Press Enter to save, or enter suggestions to regenerate.
 
 ## Schemas
 
-Zod is the preferred authoring format. Export the schema as `default` or as a named `schema`
-export:
+JSON Schema is the public schema format. The parser converts JSON Schema files to Zod
+schemas with `z.fromJSONSchema()` for validation:
 
-```ts
-import * as z from "zod";
-
-export default z.object({
-  title: z.string().describe("Main page title"),
-  price: z.string().describe("Displayed price including currency"),
-  description: z.string(),
-});
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["title", "price", "description"],
+  "properties": {
+    "title": {
+      "type": "string",
+      "description": "Main page title"
+    },
+    "price": {
+      "type": "string",
+      "description": "Displayed price including currency"
+    },
+    "description": {
+      "type": "string"
+    }
+  }
+}
 ```
 
-The CLI converts Zod to JSON Schema with `z.toJSONSchema()` for `llm-scraper`, then validates
-the final JSON with the original Zod schema. Zod transforms, `z.date()`, maps, sets, custom
-validators, and other JSON Schema-unrepresentable constructs are not supported for extractor
-generation.
-
-Plain JSON Schema files are still supported:
+Schema paths must end in `.json`.
 
 ```bash
 bun commands/parse.ts --url "https://example.com" --schema ./examples/product.schema.json
@@ -147,7 +154,7 @@ bun run docker:cleanup
 Run normally:
 
 ```bash
-bun commands/parse.ts --url "https://example.com" --schema ./examples/product.schema.ts
+bun commands/parse.ts --url "https://example.com" --schema ./examples/product.schema.json
 ```
 
 If the CloakBrowser image is not present locally, Docker will pull it automatically on first use.
@@ -157,11 +164,11 @@ Useful CloakBrowser runtime overrides:
 
 ```bash
 # Re-enable CloakBrowser background updates. Downloads are persisted in the Docker volume.
-YOYJ_CLOAKBROWSER_AUTO_UPDATE=true bun commands/parse.ts --url "https://example.com" --schema ./examples/product.schema.ts
+YOYJ_CLOAKBROWSER_AUTO_UPDATE=true bun commands/parse.ts --url "https://example.com" --schema ./examples/product.schema.json
 
 # Use another cache volume, or set to "none" for a fully disposable browser cache.
-YOYJ_CLOAKBROWSER_CACHE_VOLUME=my-cloak-cache bun commands/parse.ts --url "https://example.com" --schema ./examples/product.schema.ts
-YOYJ_CLOAKBROWSER_CACHE_VOLUME=none bun commands/parse.ts --url "https://example.com" --schema ./examples/product.schema.ts
+YOYJ_CLOAKBROWSER_CACHE_VOLUME=my-cloak-cache bun commands/parse.ts --url "https://example.com" --schema ./examples/product.schema.json
+YOYJ_CLOAKBROWSER_CACHE_VOLUME=none bun commands/parse.ts --url "https://example.com" --schema ./examples/product.schema.json
 ```
 
 If Codex exits with an error, rerun with `--verbose`, check auth with `codex login` or

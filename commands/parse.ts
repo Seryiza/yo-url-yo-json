@@ -21,7 +21,7 @@ export async function runParseCli(argv = process.argv): Promise<void> {
 export function createParseCommand(): Command {
   return new Command("parse")
     .requiredOption("--url <url>", "URL to parse")
-    .requiredOption("--schema <path>", "JSON Schema file path or Zod schema module")
+    .requiredOption("--schema <path>", ".json JSON Schema file path")
     .option("--cache-dir <path>", "Generated script cache directory", ".yo-url-yo-json/scripts")
     .option("--model <model>", "Codex model name", process.env.YOYJ_MODEL ?? "gpt-5.5")
     .option("--timeout-ms <ms>", "Extractor execution timeout", parsePositiveInt, 30_000)
@@ -57,7 +57,7 @@ export function createParseCommand(): Command {
         const schemaBundle = await loadSchema(options.schemaPath);
         const key = buildCacheKey(options.url, schemaBundle.schema);
 
-        progress.info(`schema source: ${schemaBundle.source}`);
+        progress.info("schema format: json-schema");
         progress.info(`cache key: ${key.slug}`);
 
         progress.step("Starting CloakBrowser Docker container");

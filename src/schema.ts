@@ -1,20 +1,10 @@
-import { pathToFileURL } from "node:url";
 import { readFile } from "node:fs/promises";
-import Ajv2020 from "ajv/dist/2020";
-import addFormats from "ajv-formats";
 import * as z from "zod";
 import type { JsonSchema, SchemaBundle } from "./types";
 import { SchemaValidationError } from "./types";
 
 export async function loadSchema(schemaPath: string): Promise<SchemaBundle> {
-  if (isZodModulePath(schemaPath)) {
-    return loadZodSchema(schemaPath);
-  }
-
-  return loadJsonSchema(schemaPath);
-}
-
-function loadJsonSchema(schemaPath: string): Promise<SchemaBundle> {
+  assertJsonSchemaPath(schemaPath);
   return readJsonSchema(schemaPath).then(createJsonSchemaBundle);
 }
 
@@ -34,71 +24,23 @@ async function readJsonSchema(schemaPath: string): Promise<JsonSchema> {
   return schema as JsonSchema;
 }
 
-async function loadZodSchema(schemaPath: string): Promise<SchemaBundle> {
-  let mod: Record<string, unknown>;
-
-  try {
-    mod = (await import(pathToFileURL(schemaPath).href)) as Record<string, unknown>;
-  } catch (error) {
-    throw new Error(`Failed to import Zod schema module at ${schemaPath}: ${formatError(error)}`);
-  }
-
-  const zodSchema = mod.default ?? mod.schema;
-  if (!isZodSchema(zodSchema)) {
-    throw new Error("Zod schema module must export a Zod schema as default or named export `schema`.");
-  }
-
-  let jsonSchema: unknown;
-
-  try {
-    jsonSchema = z.toJSONSchema(zodSchema, {
-      target: "draft-2020-12",
-      unrepresentable: "throw",
-      cycles: "ref",
-      reused: "ref",
-    });
-  } catch (error) {
-    throw new Error(`Failed to convert Zod schema to JSON Schema: ${formatError(error)}`);
-  }
-
-  const jsonBundle = createJsonSchemaBundle(jsonSchema as JsonSchema);
-
-  return {
-    schema: jsonBundle.schema,
-    source: "zod",
-    validate(data: unknown) {
-      const result = zodSchema.safeParse(data);
-      if (!result.success) {
-        throw new SchemaValidationError("Data did not match the Zod schema.", result.error);
-      }
-      return result.data;
-    },
-  };
-}
-
 function createJsonSchemaBundle(schema: JsonSchema): SchemaBundle {
-  const ajv = new Ajv2020({
-    allErrors: true,
-    strict: false,
-    validateSchema: true,
-  });
-  addFormats(ajv);
+  let zodSchema: z.ZodType;
 
-  const validSchema = ajv.validateSchema(schema);
-  if (!validSchema) {
-    throw new SchemaValidationError("Input JSON Schema is invalid.", ajv.errors);
+  try {
+    zodSchema = z.fromJSONSchema(schema as Parameters<typeof z.fromJSONSchema>[0]);
+  } catch (error) {
+    throw new Error(`Failed to convert JSON Schema to Zod schema: ${formatError(error)}`);
   }
-
-  const validator = ajv.compile(schema);
 
   return {
     schema,
-    source: "json-schema",
     validate(data: unknown) {
-      if (!validator(data)) {
-        throw new SchemaValidationError("Data did not match the JSON Schema.", validator.errors);
+      const result = zodSchema.safeParse(data);
+      if (!result.success) {
+        throw new SchemaValidationError("Data did not match the JSON Schema.", result.error);
       }
-      return data;
+      return result.data;
     },
   };
 }
@@ -108,7 +50,7 @@ export function validateData(bundle: SchemaBundle, data: unknown, label: string)
     return bundle.validate(data);
   } catch (error) {
     if (error instanceof SchemaValidationError) {
-      throw new SchemaValidationError(`${label} did not match the ${schemaSourceLabel(bundle)}.`, error.errors);
+      throw new SchemaValidationError(`${label} did not match the JSON Schema.`, error.errors);
     }
     throw error;
   }
@@ -136,23 +78,12 @@ export function formatValidationErrors(errors: unknown): string {
     .join("; ");
 }
 
-function isZodModulePath(schemaPath: string): boolean {
-  return /\.(mjs|cjs|js|mts|cts|ts)$/.test(schemaPath);
-}
-
-function isZodSchema(value: unknown): value is z.ZodType {
-  return Boolean(
-    value &&
-      typeof value === "object" &&
-      "safeParse" in value &&
-      typeof (value as { safeParse?: unknown }).safeParse === "function",
-  );
-}
-
-function schemaSourceLabel(bundle: SchemaBundle): string {
-  return bundle.source === "zod" ? "Zod schema" : "JSON Schema";
-}
-
 function formatError(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
+}
+
+function assertJsonSchemaPath(schemaPath: string): void {
+  if (!schemaPath.endsWith(".json")) {
+    throw new Error(`Schema path must point to a .json JSON Schema file. Received: ${schemaPath}`);
+  }
 }

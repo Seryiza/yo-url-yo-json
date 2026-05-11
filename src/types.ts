@@ -10,7 +10,6 @@ export type JsonSchema = Record<string, unknown>;
 
 export type SchemaBundle = {
   schema: JsonSchema;
-  source: "json-schema" | "zod";
   validate(data: unknown): unknown;
 };
 

@@ -1,7 +1,7 @@
 {
   "name": "yo-url-yo-json",
   "version": "0.1.0",
-  "description": "URL + Zod/JSON Schema -> validated JSON using CloakBrowser, llm-scraper, and Codex CLI.",
+  "description": "URL + JSON Schema -> validated JSON using CloakBrowser, llm-scraper, and Codex CLI.",
   "type": "module",
   "scripts": {
     "docker:cleanup": "bun run dev-scripts/cleanup-cloakbrowser.ts",
@@ -13,8 +13,6 @@
     "@openai/codex": "0.130.0",
     "ai": "^6.0.0",
     "ai-sdk-provider-codex-cli": "^1.0.0",
-    "ajv": "^8.17.1",
-    "ajv-formats": "^3.0.1",
     "commander": "^14.0.2",
     "llm-scraper": "^2.0.0",
     "playwright-core": "1.55.0",

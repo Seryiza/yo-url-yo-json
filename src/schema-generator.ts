@@ -8,9 +8,10 @@ import * as z from "zod";
 import { createCodexModel } from "./model";
 import { loadSchema } from "./schema";
 import { Spinner } from "./spinner";
+import type { JsonSchema, JsonValue } from "./types";
 
 const generatedSchemaResponse = z.object({
-  source: z.string().min(1),
+  schemaJson: z.string().min(1),
   rationale: z.string().min(1),
 });
 
@@ -21,11 +22,12 @@ export type GenerateSchemaOptions = {
 };
 
 export async function runSchemaGenerator(options: GenerateSchemaOptions): Promise<void> {
-  const prompt = await askRequired("Describe the data you want to extract: ");
   const outPath = resolve(options.out);
+  assertJsonSchemaPath(outPath);
+  const prompt = await askRequired("Describe the data you want to extract: ");
   const rl = createInterface({ input, output });
   let feedback = "";
-  let lastSource = "";
+  let lastSchema: JsonSchema | null = null;
 
   try {
     while (true) {
@@ -34,27 +36,30 @@ export async function runSchemaGenerator(options: GenerateSchemaOptions): Promis
         model: options.model,
         verbose: options.verbose,
         feedback,
-        previousSource: lastSource,
+        previousSchema: lastSchema,
       });
 
-      lastSource = normalizeSource(draft.source);
+      lastSchema = normalizeSchemaJson(draft.schemaJson);
 
       try {
-        await validateGeneratedSchema(lastSource);
+        await validateGeneratedSchema(lastSchema);
       } catch (error) {
         throw new Error(
           [
             "Generated schema validation failed.",
-            "Step: importing the generated Zod module and converting it to JSON Schema.",
+            "Step: converting the generated JSON Schema with z.fromJSONSchema().",
             `Original error: ${formatError(error)}`,
-            "Run again with a prompt that asks for only plain z.object, z.string, z.number, z.boolean, z.array, and z.enum fields.",
+            [
+              "Run again with a prompt that asks for a plain draft 2020-12 JSON Schema using",
+              "object, string, number, boolean, array, enum, and local $defs/$ref fields.",
+            ].join(" "),
           ].join("\n"),
           { cause: error },
         );
       }
 
       output.write("\nGenerated schema:\n\n");
-      output.write(`${lastSource}\n\n`);
+      output.write(`${formatJson(lastSchema)}\n\n`);
       output.write(`Rationale: ${draft.rationale}\n\n`);
 
       const suggestions = (
@@ -62,7 +67,7 @@ export async function runSchemaGenerator(options: GenerateSchemaOptions): Promis
       ).trim();
 
       if (!suggestions) {
-        await saveSchema(outPath, lastSource);
+        await saveSchema(outPath, lastSchema);
         output.write(`Saved schema to ${outPath}\n`);
         return;
       }
@@ -79,7 +84,7 @@ async function generateSchemaDraft(args: {
   model: string;
   verbose: boolean;
   feedback: string;
-  previousSource: string;
+  previousSchema: JsonSchema | null;
 }): Promise<z.infer<typeof generatedSchemaResponse>> {
   const spinner = new Spinner("Generating schema with Codex");
   spinner.start();
@@ -89,20 +94,21 @@ async function generateSchemaDraft(args: {
       model: createCodexModel(args.model, args.verbose),
       schema: generatedSchemaResponse,
       system: [
-        "You generate Zod schemas for a web parser.",
-        "Return a TypeScript module as a string.",
-        "The module must import Zod with: import * as z from \"zod\";",
-        "The module must export the schema as default.",
-        "Use only Zod constructs that convert cleanly with z.toJSONSchema().",
-        "Do not use transforms, refinements, z.date(), maps, sets, functions, custom validators, or side effects.",
-        "Prefer z.object({...}) with descriptive .describe(...) calls on fields.",
+        "You generate JSON Schema for a web parser.",
+        "Return a JSON object with a `schemaJson` string containing the JSON Schema and a `rationale` string.",
+        "`schemaJson` must be parseable JSON, not TypeScript and not Markdown.",
+        "The schema must be a draft 2020-12 JSON Schema object.",
+        "Include `$schema`: `https://json-schema.org/draft/2020-12/schema` at the schema root.",
+        "Use only JSON Schema constructs that convert cleanly with z.fromJSONSchema().",
+        "Do not use external $ref, unevaluatedProperties, unevaluatedItems, if, then, else, dependentSchemas, or dependentRequired.",
+        "Prefer root type `object`, descriptive `description` fields, `required` for required fields, and `additionalProperties: false` for fixed objects.",
         "Use required fields unless the user clearly asks for optional fields.",
       ].join("\n"),
       prompt: [
         `User extraction request:\n${args.prompt}`,
-        args.previousSource ? `Previous schema draft:\n${args.previousSource}` : "",
+        args.previousSchema ? `Previous schema draft:\n${formatJson(args.previousSchema)}` : "",
         args.feedback ? `Revision instructions:\n${args.feedback}` : "",
-        "Generate the complete schema module now.",
+        "Generate the complete JSON Schema now.",
       ]
         .filter(Boolean)
         .join("\n\n"),
@@ -115,7 +121,7 @@ async function generateSchemaDraft(args: {
     throw new Error(
       [
         "Codex schema generation failed.",
-        "Step: generating a Zod schema draft with Codex CLI.",
+        "Step: generating a JSON Schema draft with Codex CLI.",
         `Model: ${args.model}.`,
         `Original error: ${formatError(error)}`,
         "Common fixes: run `bun install` so @openai/codex is installed from this project, verify Codex auth with `codex login` or OPENAI_API_KEY, then retry with --verbose for provider logs.",
@@ -125,12 +131,12 @@ async function generateSchemaDraft(args: {
   }
 }
 
-async function validateGeneratedSchema(source: string): Promise<void> {
+async function validateGeneratedSchema(schema: JsonSchema): Promise<void> {
   const tempDir = resolve(".yo-url-yo-json/tmp");
-  const tempPath = resolve(tempDir, `schema-${randomUUID()}.ts`);
+  const tempPath = resolve(tempDir, `schema-${randomUUID()}.json`);
 
   await mkdir(tempDir, { recursive: true });
-  await writeFile(tempPath, source, "utf8");
+  await writeFile(tempPath, `${formatJson(schema)}\n`, "utf8");
 
   try {
     await loadSchema(tempPath);
@@ -139,9 +145,9 @@ async function validateGeneratedSchema(source: string): Promise<void> {
   }
 }
 
-async function saveSchema(outPath: string, source: string): Promise<void> {
+async function saveSchema(outPath: string, schema: JsonSchema): Promise<void> {
   await mkdir(dirname(outPath), { recursive: true });
-  await writeFile(outPath, `${source.trimEnd()}\n`, "utf8");
+  await writeFile(outPath, `${formatJson(schema)}\n`, "utf8");
 }
 
 async function askRequired(question: string): Promise<string> {
@@ -162,14 +168,65 @@ async function askWithReadline(rl: ReturnType<typeof createInterface>, question:
   return rl.question(question);
 }
 
-function normalizeSource(source: string): string {
-  return stripCodeFence(source).trim();
+function normalizeSchemaJson(schemaJson: string): JsonSchema {
+  let schema: unknown;
+
+  try {
+    schema = JSON.parse(stripCodeFence(schemaJson));
+  } catch (error) {
+    throw new Error(`Generated schemaJson must be parseable JSON: ${formatError(error)}`);
+  }
+
+  if (!schema || typeof schema !== "object" || Array.isArray(schema)) {
+    throw new Error("Generated schema must be a JSON object.");
+  }
+
+  if (!isJsonValue(schema)) {
+    throw new Error("Generated schema must be valid JSON.");
+  }
+
+  return schema as JsonSchema;
 }
 
 function stripCodeFence(source: string): string {
   const trimmed = source.trim();
-  const match = trimmed.match(/^```(?:ts|typescript)?\s*([\s\S]*?)\s*```$/i);
-  return match?.[1] ?? trimmed;
+  const match = trimmed.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i);
+  return match?.[1]?.trim() ?? trimmed;
+}
+
+function assertJsonSchemaPath(outPath: string): void {
+  if (!outPath.endsWith(".json")) {
+    throw new Error(`Generated schemas must be saved as .json files. Received: ${outPath}`);
+  }
+}
+
+function isJsonValue(value: unknown): value is JsonValue {
+  if (value === null) {
+    return true;
+  }
+
+  const type = typeof value;
+  if (type === "string" || type === "boolean") {
+    return true;
+  }
+
+  if (type === "number") {
+    return Number.isFinite(value);
+  }
+
+  if (Array.isArray(value)) {
+    return value.every(isJsonValue);
+  }
+
+  if (type === "object") {
+    return Object.values(value as Record<string, unknown>).every(isJsonValue);
+  }
+
+  return false;
+}
+
+function formatJson(value: unknown): string {
+  return JSON.stringify(value, null, 2);
 }
 
 function formatError(error: unknown): string {
