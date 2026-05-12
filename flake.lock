@@ -30,11 +30,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1778553006,
-        "narHash": "sha256-1eG5qBhFMNabiRcHKmoFFSvfHTvuyN2O297ae55cb8w=",
+        "lastModified": 1778562864,
+        "narHash": "sha256-t1sLjNpCUYpKFfg/8GBs6etMY2Xe4zSsaoLEnC000ck=",
         "owner": "Seryiza",
         "repo": "CloakBrowser",
-        "rev": "8718e32fe02e2f3dc8b65488dca3a1ce10bbe9ca",
+        "rev": "9638cbf2aa988957e2720a4a6571bab8b68d6660",
         "type": "github"
       },
       "original": {
