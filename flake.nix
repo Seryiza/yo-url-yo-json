@@ -53,6 +53,22 @@
             '';
             runtimeInputs = [ pkgs.nodejs_22 ];
 
+            installPhase = ''
+              runHook preInstall
+
+              mkdir -p \
+                "$out/share/$pname" \
+                "$out/bin"
+
+              cp -r ./. "$out/share/$pname"
+
+              makeWrapper ${pkgs.bun}/bin/bun "$out/bin/$pname" \
+                --add-flags "$out/share/$pname/dist/yo-url-yo-json.js" \
+                --prefix PATH : ${lib.makeBinPath [ pkgs.nodejs_22 ]}
+
+              runHook postInstall
+            '';
+
             meta = {
               description = "Extract validated JSON from webpages using JSON Schema";
               homepage = "https://github.com/Seryiza/yo-url-yo-json";
