@@ -33,7 +33,7 @@
           pkgs = import nixpkgs { inherit system; };
           bun2nix' = bun2nix.packages.${system}.default;
           cloakbrowserChromium = cloakbrowser.packages.${system}.cloakbrowserChromium;
-          package = bun2nix'.mkDerivation {
+          package = bun2nix'.writeBunApplication {
             pname = "yo-url-yo-json";
             version = "0.2.0";
 
@@ -41,8 +41,17 @@
             bunDeps = bun2nix'.fetchBunDeps {
               bunNix = ./bun.nix;
             };
-            module = "commands/index.ts";
-            extraBunBuildFlags = [ "--packages=external" ];
+
+            buildPhase = ''
+              runHook preBuild
+              bun run build
+              runHook postBuild
+            '';
+
+            startScript = ''
+              bun dist/yo-url-yo-json.js "$@"
+            '';
+            runtimeInputs = [ pkgs.nodejs_22 ];
 
             meta = {
               description = "Extract validated JSON from webpages using JSON Schema";
