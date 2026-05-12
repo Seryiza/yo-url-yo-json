@@ -2,27 +2,156 @@
   <img width="300" height="300" alt="yoyo-logo" src="https://github.com/user-attachments/assets/adf5a2d5-8649-4228-91d8-fbe7926f8295" />
 </p>
 
-# 🪀✨ yo url yo json
+# 🪀 yo url yo json
+- 🪀 is a TypeScript Bun CLI for extracting validated JSON from webpages
+- 💡 is built around the idea *"your URL + your Schema => parsed JSON"*
+- 🖼️ uses LLMs to generate schemas and playwright scripts, after that **doesn't use** LLMs
+- 👐 relies on open source projects: [llm-scraper](https://github.com/mishushakov/llm-scraper), [CloakBrowser](https://github.com/CloakHQ/CloakBrowser), [ai-sdk-provider-codex-cli](https://github.com/ben-vargas/ai-sdk-provider-codex-cli).
 
-*URL + Schema -> JSON*
-
-`yo-url-yo-json` is a Bun + TypeScript CLI for extracting validated JSON from a webpage using [llm-scraper](https://github.com/mishushakov/llm-scraper), [CloakBrowser](https://github.com/CloakHQ/CloakBrowser), and [ai-sdk-provider-codex-cli](https://github.com/ben-vargas/ai-sdk-provider-codex-cli).
-
-## how to use it
-1. say what you want to parse via cli or agent skill.
-2. get a generated json schema.
-3. use url + schema to generate reusable parser code.
-4. run it as many times as you want.
-
-## usage examples
-- [bun + typescript watcher for house.kg search result pages](https://github.com/Seryiza/housekg-telegram-notifications)
-
-## dependencies
+## Requirements
 - bun
 - codex: `codex login` or `OPENAI_API_KEY`
-- optional: running CDP service; CloakBrowser as fallback (npm)
+- optional running Chrome-based browser with CDP; [CloakBrowser](https://github.com/CloakHQ/CloakBrowser) as fallback
 
-## usage
+## Bun CLI usage
+
+1. 👉 say what you want to parse via interactive cli
+
+<details>
+    <summary><code>bun run commands/generate-schema.ts --out my-schema.json</code></summary>
+
+```
+Describe the data you want to extract: youtube gaming feed with video: title, youtube video link, view count text, channel name
+Generating schema with Codex...
+Schema draft generated.
+
+Generated schema:
+
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "description": "YouTube Gaming feed extraction containing visible video entries and their core listing metadata.",
+  "properties": {
+    "videos": {
+      "type": "array",
+      "description": "Video entries shown in the YouTube Gaming feed.",
+      "items": {
+        "type": "object",
+        "description": "A single video entry from the feed.",
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "The visible title of the YouTube video."
+          },
+          "youtubeVideoLink": {
+            "type": "string",
+            "description": "The absolute YouTube watch URL or Shorts URL for the video."
+          },
+          "channelName": {
+            "type": "string",
+            "description": "The visible name of the channel that published the video."
+          }
+        },
+        "required": [
+          "title",
+          "youtubeVideoLink",
+          "channelName"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [
+    "videos"
+  ],
+  "additionalProperties": false
+}
+
+Rationale: The request asks for feed-level extraction only, so the schema models a root object with a required videos array and required listing fields for each video. No workflow metadata is included because no clicks, detail-page visits, scrolling, waiting, or enrichment steps were requested.
+
+Press Enter to save, or enter suggestions to regenerate:
+Saved schema to my-schema.json
+```
+
+</details>
+
+2. 👉 use url + schema to generate reusable parser code.
+
+<details>
+    <summary><code>bun run commands/parse.ts --schema my-schema.json --url "https://www.youtube.com/gaming"</code></summary>
+
+```
+{
+  "videos": [
+    {
+      "title": "🔴 HELIOPOLIS IN 2 RUNS 🔴 40%, 37-100 🔴 STREAM 11",
+      "youtubeVideoLink": "https://www.youtube.com/watch?v=7G2YtcCsomI",
+      "channelName": "Zoink"
+    },
+    {
+      "title": "Hello Neighbor 3: EXPLOSION inesperada!",
+      "youtubeVideoLink": "https://www.youtube.com/watch?v=sGXGy37AKcE",
+      "channelName": "VEGETTA777"
+    },
+    {
+      "title": "Pokémon Super S Ep.37 - LA CAGADA DEL LOCKE. NOOOO.",
+      "youtubeVideoLink": "https://www.youtube.com/watch?v=VCs2gCZknvA",
+      "channelName": "Folagor03"
+    },
+    {
+      "title": "Sins of Alchemax | Marvel Rivals Season 8 Trailer | Marvel Rivals",
+      "youtubeVideoLink": "https://www.youtube.com/watch?v=F4B0Jpr4Rw4",
+      "channelName": "Marvel Rivals"
+    },
+    {
+      "title": "Our Airport Security Still Sucks...",
+      "youtubeVideoLink": "https://www.youtube.com/watch?v=8NCaEveCxJ8",
+      "channelName": "SMii7Y"
+    },
+    {
+      "title": "I Killed a Man on His Birthday",
+      "youtubeVideoLink": "https://www.youtube.com/watch?v=Y-7S7tkSyG4",
+      "channelName": "penguinz0"
+    },
+    {
+      "title": "so i found a mace glitch...",
+      "youtubeVideoLink": "https://www.youtube.com/watch?v=lzL1K2TrhZk",
+      "channelName": "JudeLow"
+    },
+    {
+      "title": "Crime Scene Cleaner - Part 2",
+      "youtubeVideoLink": "https://www.youtube.com/watch?v=eOwM64UVaGM",
+      "channelName": "jacksepticeye"
+    },
+    {
+      "title": "Mulberry County…",
+      "youtubeVideoLink": "https://www.youtube.com/watch?v=VL3_3rYSvec",
+      "channelName": "CaseOh"
+    }
+  ]
+}
+```
+
+</details>
+
+3. 👉 run it as many times as you want
+```bash
+$ bun run commands/parse.ts --schema my-schema.json --url "https://www.youtube.com/gaming"
+# reused the generated playwright script: .yo-url-yo-json/scripts/www-youtube-com-f6731611d10adb05.js
+
+$ bun run commands/parse.ts --schema my-schema.json --url "https://www.youtube.com/gaming"
+# reused the generated playwright script: .yo-url-yo-json/scripts/www-youtube-com-f6731611d10adb05.js
+
+$ bun run commands/parse.ts --schema my-schema.json --url "https://www.youtube.com/gaming"
+# reused the generated playwright script: .yo-url-yo-json/scripts/www-youtube-com-f6731611d10adb05.js
+```
+
+📝 Explore additional ways to use this project in the [usage section](https://github.com/Seryiza/yo-url-yo-json#usage).
+
+## Projects using yo-url-yo-json
+- [bun + typescript watcher for house.kg search result pages](https://github.com/Seryiza/housekg-telegram-notifications)
+
+## Usage
 ### agent skill
 
 Project-local skill: `skills/yo-url-yo-json/SKILL.md`.
