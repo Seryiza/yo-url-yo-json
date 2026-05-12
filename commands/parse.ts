@@ -23,8 +23,8 @@ export async function runParseCli(argv = process.argv): Promise<void> {
 export function createParseCommand(): Command {
   return new Command("parse")
     .requiredOption("--url <url>", "URL to parse")
-    .requiredOption("--schema <path>", ".json JSON Schema file path")
-    .option("--cache-dir <path>", "Generated script cache directory", ".yo-url-yo-json/scripts")
+    .requiredOption("--schema <path>", ".json JSON Schema file path; relative paths resolve from cwd")
+    .option("--cache-dir <path>", "Generated script cache directory; relative paths resolve from cwd", ".yo-url-yo-json/scripts")
     .option("--model <model>", "Codex model name", process.env.YOYJ_MODEL ?? "gpt-5.5")
     .option("--timeout-ms <ms>", "Extractor execution timeout", parsePositiveInt, 30_000)
     .option("--goto-timeout-ms <ms>", "Page navigation timeout", parsePositiveInt, 45_000)
@@ -46,8 +46,8 @@ export function createParseCommand(): Command {
       try {
         const options: ParseOptions = {
           url: normalizeUrl(rawOptions.url),
-          schemaPath: resolve(rawOptions.schema),
-          cacheDir: resolve(rawOptions.cacheDir),
+          schemaPath: resolveCliPath(rawOptions.schema),
+          cacheDir: resolveCliPath(rawOptions.cacheDir),
           progressSteps: 11,
           model: rawOptions.model,
           timeoutMs: rawOptions.timeoutMs,
@@ -95,6 +95,10 @@ export function createParseCommand(): Command {
         }
       }
     });
+}
+
+export function resolveCliPath(path: string, cwd = process.cwd()): string {
+  return resolve(cwd, path);
 }
 
 function shouldReexecParseUnderNode(): boolean {
