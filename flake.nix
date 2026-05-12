@@ -1,7 +1,11 @@
 {
-  description = "Development shell for yo-url-yo-json";
+  description = "yo-url-yo-json CLI";
 
   inputs = {
+    bun2nix = {
+      url = "github:nix-community/bun2nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     cloakbrowser = {
       url = "github:Seryiza/CloakBrowser";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -10,7 +14,12 @@
   };
 
   outputs =
-    { cloakbrowser, nixpkgs, ... }:
+    {
+      bun2nix,
+      cloakbrowser,
+      nixpkgs,
+      ...
+    }:
     let
       lib = nixpkgs.lib;
       systems = [
@@ -18,13 +27,69 @@
         "aarch64-linux"
       ];
       forAllSystems = lib.genAttrs systems;
-    in
-    {
-      devShells = forAllSystems (
+      perSystem =
         system:
         let
           pkgs = import nixpkgs { inherit system; };
+          bun2nix' = bun2nix.packages.${system}.default;
           cloakbrowserChromium = cloakbrowser.packages.${system}.cloakbrowserChromium;
+          package = bun2nix'.mkDerivation {
+            pname = "yo-url-yo-json";
+            version = "0.2.0";
+
+            src = ./.;
+            bunDeps = bun2nix'.fetchBunDeps {
+              bunNix = ./bun.nix;
+            };
+            module = "commands/index.ts";
+            extraBunBuildFlags = [ "--packages=external" ];
+
+            meta = {
+              description = "Extract validated JSON from webpages using JSON Schema";
+              homepage = "https://github.com/Seryiza/yo-url-yo-json";
+              license = lib.licenses.mit;
+              mainProgram = "yo-url-yo-json";
+              platforms = systems;
+            };
+          };
+        in
+        {
+          inherit cloakbrowserChromium package pkgs;
+        };
+    in
+    {
+      packages = forAllSystems (
+        system:
+        let
+          inherit (perSystem system) package;
+        in
+        {
+          default = package;
+          yo-url-yo-json = package;
+        }
+      );
+
+      apps = forAllSystems (
+        system:
+        let
+          inherit (perSystem system) package;
+        in
+        {
+          default = {
+            type = "app";
+            program = "${package}/bin/yo-url-yo-json";
+          };
+          yo-url-yo-json = {
+            type = "app";
+            program = "${package}/bin/yo-url-yo-json";
+          };
+        }
+      );
+
+      devShells = forAllSystems (
+        system:
+        let
+          inherit (perSystem system) cloakbrowserChromium pkgs;
         in
         {
           default = pkgs.mkShell {

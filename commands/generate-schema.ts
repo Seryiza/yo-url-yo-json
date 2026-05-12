@@ -56,5 +56,8 @@ function isBundledRootEntrypoint(entrypoint: string): boolean {
 }
 
 if (isMainModule(import.meta.url)) {
-  await runSchemaCli();
+  runSchemaCli().catch((error: unknown) => {
+    reportError(error);
+    process.exitCode = 1;
+  });
 }

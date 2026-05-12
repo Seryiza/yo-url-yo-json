@@ -22,5 +22,8 @@ function isMainModule(url: string): boolean {
 }
 
 if (isMainModule(import.meta.url)) {
-  await runCli();
+  runCli().catch((error: unknown) => {
+    console.error(error instanceof Error ? error.message : String(error));
+    process.exitCode = 1;
+  });
 }

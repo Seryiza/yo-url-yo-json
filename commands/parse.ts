@@ -206,5 +206,8 @@ function isBundledRootEntrypoint(entrypoint: string): boolean {
 }
 
 if (isMainModule(import.meta.url)) {
-  await runParseCli();
+  runParseCli().catch((error: unknown) => {
+    reportError(error);
+    process.exitCode = 1;
+  });
 }
