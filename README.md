@@ -8,11 +8,6 @@
 - 🖼️ uses LLMs to generate schemas and playwright scripts, after that **doesn't use** LLMs
 - 👐 relies on open source projects: [llm-scraper](https://github.com/mishushakov/llm-scraper), [CloakBrowser](https://github.com/CloakHQ/CloakBrowser), [ai-sdk-provider-codex-cli](https://github.com/ben-vargas/ai-sdk-provider-codex-cli).
 
-## Requirements
-- bun
-- codex: `codex login` or `OPENAI_API_KEY`
-- optional running Chrome-based browser with CDP; [CloakBrowser](https://github.com/CloakHQ/CloakBrowser) as fallback
-
 ## Bun CLI usage
 
 1. 👉 say what you want to parse via interactive cli
@@ -147,6 +142,11 @@ $ bun run commands/parse.ts --schema my-schema.json --url "https://www.youtube.c
 ```
 
 📝 Explore additional ways to use this project in the [usage section](https://github.com/Seryiza/yo-url-yo-json#usage).
+
+## Requirements
+- bun
+- codex: `codex login` or `OPENAI_API_KEY`
+- optional running Chrome-based browser with CDP; [CloakBrowser](https://github.com/CloakHQ/CloakBrowser) as fallback
 
 ## Projects using yo-url-yo-json
 - [bun + typescript watcher for house.kg search result pages](https://github.com/Seryiza/housekg-telegram-notifications)
