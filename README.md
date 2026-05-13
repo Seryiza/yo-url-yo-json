@@ -16,7 +16,7 @@
     <summary><code>bun run commands/generate-schema.ts --out my-schema.json</code></summary>
 
 ```
-Describe the data you want to extract: youtube gaming feed with video: title, youtube video link, view count text, channel name
+Describe the data you want to extract: youtube gaming feed with video: title, youtube video link, channel name
 Generating schema with Codex...
 Schema draft generated.
 
