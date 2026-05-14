@@ -1,9 +1,11 @@
-import { launch as launchCloakBrowser } from "cloakbrowser";
-import { chromium, type Browser } from "playwright-core";
+import { launchOptions as createCamoufoxLaunchOptions } from "camoufox-js";
+import { CamoufoxFetcher, installedVerStr } from "camoufox-js/dist/pkgman.js";
+import { chromium, firefox, type Browser } from "playwright-core";
 import type { Progress } from "./progress";
 
 const CDP_CONNECT_TIMEOUT_MS = 120_000;
 const EXTERNAL_CDP_ENV = "YOYJ_CDP_ENDPOINT";
+const CAMOUFOX_EXECUTABLE_ENV = "YOYJ_CAMOUFOX_EXECUTABLE_PATH";
 const VALID_CDP_PROTOCOLS = new Set(["http:", "https:", "ws:", "wss:"]);
 
 type LaunchOptions = {
@@ -13,13 +15,17 @@ type LaunchOptions = {
 
 type BrowserLauncherDependencies = {
   connectOverCDP: typeof chromium.connectOverCDP;
-  launchLocalBrowser: typeof launchCloakBrowser;
+  createCamoufoxLaunchOptions: typeof createCamoufoxLaunchOptions;
+  ensureManagedCamoufox: (env: Record<string, string | undefined>) => Promise<void>;
+  launchFirefox: typeof firefox.launch;
   env: Record<string, string | undefined>;
 };
 
 const defaultDependencies: BrowserLauncherDependencies = {
   connectOverCDP: chromium.connectOverCDP.bind(chromium),
-  launchLocalBrowser: launchCloakBrowser,
+  createCamoufoxLaunchOptions,
+  ensureManagedCamoufox: ensureManagedCamoufoxInstalled,
+  launchFirefox: firefox.launch.bind(firefox),
   env: process.env,
 };
 
@@ -33,7 +39,7 @@ export async function launchBrowser(
     return connectToExternalCdp(externalEndpoint, options, dependencies);
   }
 
-  return launchLocalCloakBrowser(options, dependencies);
+  return launchLocalCamoufox(options, dependencies);
 }
 
 async function connectToExternalCdp(
@@ -66,30 +72,90 @@ async function connectToExternalCdp(
   }
 }
 
-async function launchLocalCloakBrowser(
+async function launchLocalCamoufox(
   options: LaunchOptions,
   dependencies: BrowserLauncherDependencies,
 ): Promise<Browser> {
   const headless = !options.headed;
+  const executablePath = dependencies.env[CAMOUFOX_EXECUTABLE_ENV]?.trim();
 
-  options.progress?.info("browser provider: local npm cloakbrowser");
+  if (executablePath) {
+    return launchExecutableCamoufox(executablePath, headless, options, dependencies);
+  }
+
+  return launchManagedCamoufox(headless, options, dependencies);
+}
+
+async function launchExecutableCamoufox(
+  executablePath: string,
+  headless: boolean,
+  options: LaunchOptions,
+  dependencies: BrowserLauncherDependencies,
+): Promise<Browser> {
+  options.progress?.info("browser provider: local Camoufox executable");
+  options.progress?.info(`${CAMOUFOX_EXECUTABLE_ENV}: ${executablePath}`);
   options.progress?.info(`headless: ${headless}`);
-  options.progress?.status("Launching local CloakBrowser...");
+  options.progress?.status("Launching local Camoufox...");
 
   try {
-    const browser = await dependencies.launchLocalBrowser({ headless });
-    options.progress?.status("Local CloakBrowser launched.");
+    const browser = await dependencies.launchFirefox({ executablePath, headless });
+    options.progress?.status("Local Camoufox launched.");
     return browser;
   } catch (error) {
     throw new Error(
       [
-        "Failed to launch local CloakBrowser.",
+        "Failed to launch local Camoufox executable.",
+        `Executable: ${executablePath}`,
         `Headless: ${headless}`,
         `Original error: ${formatError(error)}`,
       ].join("\n"),
       { cause: error },
     );
   }
+}
+
+async function launchManagedCamoufox(
+  headless: boolean,
+  options: LaunchOptions,
+  dependencies: BrowserLauncherDependencies,
+): Promise<Browser> {
+  options.progress?.info("browser provider: local npm camoufox-js");
+  options.progress?.info(`headless: ${headless}`);
+  options.progress?.status("Launching local Camoufox...");
+
+  try {
+    await dependencies.ensureManagedCamoufox(dependencies.env);
+    const launchOptions = await dependencies.createCamoufoxLaunchOptions({ headless });
+    const browser = await dependencies.launchFirefox(launchOptions);
+    options.progress?.status("Local Camoufox launched.");
+    return browser;
+  } catch (error) {
+    throw new Error(
+      [
+        "Failed to launch local Camoufox via camoufox-js.",
+        `Headless: ${headless}`,
+        `Original error: ${formatError(error)}`,
+      ].join("\n"),
+      { cause: error },
+    );
+  }
+}
+
+async function ensureManagedCamoufoxInstalled(env: Record<string, string | undefined>): Promise<void> {
+  if (shouldSkipBrowserDownload(env.PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD)) {
+    return;
+  }
+
+  try {
+    installedVerStr();
+  } catch {
+    const fetcher = new CamoufoxFetcher();
+    await fetcher.install();
+  }
+}
+
+function shouldSkipBrowserDownload(value: string | undefined): boolean {
+  return Boolean(value && value !== "false" && value !== "0");
 }
 
 function validateCdpEndpoint(endpoint: string): void {

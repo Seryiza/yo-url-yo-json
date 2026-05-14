@@ -23,23 +23,23 @@
         "type": "github"
       }
     },
-    "cloakbrowser": {
+    "camoufox": {
       "inputs": {
         "nixpkgs": [
           "nixpkgs"
         ]
       },
       "locked": {
-        "lastModified": 1778562864,
-        "narHash": "sha256-t1sLjNpCUYpKFfg/8GBs6etMY2Xe4zSsaoLEnC000ck=",
+        "lastModified": 1778724573,
+        "narHash": "sha256-r1Z9q1NG443KDqSxpYRzWph7Ef/JEdDGVSXtGuBveew=",
         "owner": "Seryiza",
-        "repo": "CloakBrowser",
-        "rev": "9638cbf2aa988957e2720a4a6571bab8b68d6660",
+        "repo": "camoufox",
+        "rev": "4d342ae28c4634b5cb0be797c11366810889dacb",
         "type": "github"
       },
       "original": {
         "owner": "Seryiza",
-        "repo": "CloakBrowser",
+        "repo": "camoufox",
         "type": "github"
       }
     },
@@ -83,7 +83,7 @@
     "root": {
       "inputs": {
         "bun2nix": "bun2nix",
-        "cloakbrowser": "cloakbrowser",
+        "camoufox": "camoufox",
         "nixpkgs": "nixpkgs"
       }
     },

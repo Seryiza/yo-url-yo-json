@@ -6,8 +6,8 @@
       url = "github:nix-community/bun2nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    cloakbrowser = {
-      url = "github:Seryiza/CloakBrowser";
+    camoufox = {
+      url = "github:Seryiza/camoufox";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
@@ -16,7 +16,7 @@
   outputs =
     {
       bun2nix,
-      cloakbrowser,
+      camoufox,
       nixpkgs,
       ...
     }:
@@ -32,7 +32,7 @@
         let
           pkgs = import nixpkgs { inherit system; };
           bun2nix' = bun2nix.packages.${system}.default;
-          cloakbrowserChromium = cloakbrowser.packages.${system}.cloakbrowserChromium;
+          camoufoxPackage = camoufox.packages.${system}.camoufox;
           package = bun2nix'.writeBunApplication {
             pname = "yo-url-yo-json";
             version = "0.2.0";
@@ -79,7 +79,7 @@
           };
         in
         {
-          inherit cloakbrowserChromium package pkgs;
+          inherit camoufoxPackage package pkgs;
         };
     in
     {
@@ -114,7 +114,7 @@
       devShells = forAllSystems (
         system:
         let
-          inherit (perSystem system) cloakbrowserChromium pkgs;
+          inherit (perSystem system) camoufoxPackage pkgs;
         in
         {
           default = pkgs.mkShell {
@@ -125,13 +125,11 @@
                 nodejs_22
               ])
               ++ [
-                cloakbrowserChromium
+                camoufoxPackage
               ];
 
-            CLOAKBROWSER_BINARY_PATH = "${cloakbrowserChromium}/bin/cloakbrowser-chrome";
             shellHook = ''
-              export CLOAKBROWSER_CACHE_DIR="$PWD/.yo-url-yo-json/cloakbrowser"
-              mkdir -p "$CLOAKBROWSER_CACHE_DIR"
+              export YOYJ_CAMOUFOX_EXECUTABLE_PATH="${camoufoxPackage}/bin/camoufox"
             '';
           };
         }

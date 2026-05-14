@@ -30,7 +30,7 @@ export function createParseCommand(): Command {
     .option("--goto-timeout-ms <ms>", "Page navigation timeout", parsePositiveInt, 45_000)
     .option("--force-regenerate", "Skip cached script and generate a new extractor", false)
     .option("--truncate-long-html-for-llm", "Allow truncating oversized HTML samples for LLM code generation", false)
-    .option("--headed", "Run CloakBrowser headed", false)
+    .option("--headed", "Run Camoufox headed", false)
     .option("--verbose", "Print diagnostics to stderr", false)
     .action(async (rawOptions) => {
       configureAiSdkWarnings(Boolean(rawOptions.verbose));

@@ -6,7 +6,7 @@
 - 🪀 is a TypeScript Bun CLI for extracting validated JSON from webpages
 - 💡 is built around the idea *"your URL + your Schema => parsed JSON"*
 - 🖼️ uses LLMs to generate schemas and playwright scripts, after that **doesn't use** LLMs
-- 👐 relies on open source projects: [llm-scraper](https://github.com/mishushakov/llm-scraper), [CloakBrowser](https://github.com/CloakHQ/CloakBrowser), [ai-sdk-provider-codex-cli](https://github.com/ben-vargas/ai-sdk-provider-codex-cli).
+- 👐 relies on open source projects: [llm-scraper](https://github.com/mishushakov/llm-scraper), [Camoufox](https://github.com/daijro/camoufox), [ai-sdk-provider-codex-cli](https://github.com/ben-vargas/ai-sdk-provider-codex-cli).
 
 ## Bun CLI usage
 
@@ -146,7 +146,7 @@ $ bun run commands/parse.ts --schema my-schema.json --url "https://www.youtube.c
 ## Requirements
 - bun
 - codex: `codex login` or `OPENAI_API_KEY`
-- optional running Chrome-based browser with CDP; [CloakBrowser](https://github.com/CloakHQ/CloakBrowser) as fallback
+- optional: running browser with CDP; [Camoufox](https://github.com/daijro/camoufox) as fallback
 
 ## Projects using yo-url-yo-json
 - [bun + typescript watcher for house.kg search result pages](https://github.com/Seryiza/housekg-telegram-notifications)
@@ -203,13 +203,19 @@ Stdout is parsed JSON. Diagnostics go to stderr.
 
 ## runtime flow
 
-1. Browser: `YOYJ_CDP_ENDPOINT` CDP service, else local npm `cloakbrowser`.
+1. Browser: `YOYJ_CDP_ENDPOINT`, else `YOYJ_CAMOUFOX_EXECUTABLE_PATH`, else local npm `camoufox-js`.
 2. Extractor: cached script, else llm-scraper + Codex CLI generation.
 3. Output: JSON Schema validation, then stdout.
 
 Generated extractors: `.yo-url-yo-json/scripts/`.
 
 `YOYJ_CDP_ENDPOINT` supports `http`, `https`, `ws`, and `wss`.
+
+Browser selection order:
+
+1. `YOYJ_CDP_ENDPOINT`: connect to an external Chromium CDP browser.
+2. `YOYJ_CAMOUFOX_EXECUTABLE_PATH`: launch that Camoufox executable directly.
+3. `camoufox-js`: launch npm-managed local Camoufox. The first local run may download Camoufox through `camoufox-js`.
 
 ## nix development shell
 
@@ -218,6 +224,10 @@ nix develop
 bun install
 bun test
 ```
+
+The Nix shell includes the `Seryiza/camoufox` flake package and exports
+`YOYJ_CAMOUFOX_EXECUTABLE_PATH` automatically, so Nix runs avoid npm-managed
+browser downloads.
 
 Direnv:
 

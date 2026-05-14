@@ -1,6 +1,6 @@
 ---
 name: yo-url-yo-json
-description: Parse a webpage URL into JSON matching a user-provided JSON Schema by running this project's Bun CLI with CloakBrowser, llm-scraper, and Codex CLI. Use when the user asks to extract structured data from a webpage with schema-constrained output.
+description: Parse a webpage URL into JSON matching a user-provided JSON Schema by running this project's Bun CLI with Camoufox, llm-scraper, and Codex CLI. Use when the user asks to extract structured data from a webpage with schema-constrained output.
 ---
 
 # yo-url-yo-json
@@ -29,7 +29,7 @@ Schema, then saves when the user presses Enter or regenerates when the user ente
 
 ## Behavior
 
-- The CLI uses CloakBrowser for page access.
+- The CLI uses Camoufox for page access.
 - It reuses generated Playwright extractors when possible.
 - Codex and `llm-scraper` generate or repair extractors when needed.
 - Generated extractors are stored under `.yo-url-yo-json/scripts/`.

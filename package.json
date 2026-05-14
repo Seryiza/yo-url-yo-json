@@ -1,7 +1,7 @@
 {
   "name": "yo-url-yo-json",
   "version": "0.2.0",
-  "description": "Extract validated JSON from webpages using JSON Schema, CloakBrowser, llm-scraper, and Codex CLI.",
+  "description": "Extract validated JSON from webpages using JSON Schema, Camoufox, llm-scraper, and Codex CLI.",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -25,7 +25,6 @@
   },
   "files": [
     "dist",
-    "docker-compose.yml",
     "examples",
     "README.md",
     "LICENSE"
@@ -39,7 +38,6 @@
   },
   "scripts": {
     "build": "bun build --target=bun --packages=external --outfile=dist/yo-url-yo-json.js commands/index.ts && bun build --target=node --packages=external --outfile=dist/yo-url-yo-json-node.js commands/index.ts && chmod +x dist/yo-url-yo-json.js dist/yo-url-yo-json-node.js",
-    "docker:pull": "docker compose pull cloakbrowser",
     "prepublishOnly": "bun run typecheck && bun test && bun run build && npm pack --dry-run",
     "typecheck": "tsc --noEmit",
     "test": "bun test"
@@ -48,7 +46,7 @@
     "@openai/codex": "0.130.0",
     "ai": "^6.0.0",
     "ai-sdk-provider-codex-cli": "^1.0.0",
-    "cloakbrowser": "^0.3.28",
+    "camoufox-js": "^0.10.2",
     "commander": "^14.0.2",
     "llm-scraper": "^2.0.0",
     "playwright-core": "1.55.0",
